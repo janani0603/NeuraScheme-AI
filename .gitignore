@@ -35,9 +35,8 @@ frontend/dist-ssr/
 # ── Vite ──────────────────────────────────────────────────────────────────────
 frontend/.vite/
 
-# ── Dataset (large files — do not commit raw CSVs) ────────────────────────────
-dataset/government_schemes.csv
-dataset/cleaned_government_schemes.csv
+# ── Dataset ──────────────────────────────────────────────────────────────────
+# dataset files are intentionally tracked for teammates
 
 # ── ML / Embeddings ───────────────────────────────────────────────────────────
 *.pt

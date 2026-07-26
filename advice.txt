@@ -71,12 +71,12 @@ SECTION 2 — PYTHON / ENVIRONMENT RULES (CRITICAL)
 SECTION 3 — ENVIRONMENT VARIABLES (backend\.env)
 --------------------------------------------------------------------------------
 
-MONGODB_URI=mongodb+srv://nmani_userckam7447_db:dilHCoKMHnpfXIwB@cluster0.ivzoqfo.mongodb.net/?appName=Cluster0
+MONGODB_URI=<your-mongodb-atlas-uri>
 DATABASE_NAME=neurascheme
-JWT_SECRET=secret-for-neurascheme
+JWT_SECRET=<your-jwt-secret>
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
-GEMINI_API_KEY=AQ.Ab8RN6JzhU5m_RhB_r7vp9pWrkdrtNXizbXUXcpQJeRsGy4NJg
+GEMINI_API_KEY=<your-gemini-api-key>
 GEMINI_MODEL=gemini-2.5-flash        (set in settings.py default, not in .env)
 EMBEDDING_MODEL=all-MiniLM-L6-v2     (set in settings.py default, not in .env)
 
