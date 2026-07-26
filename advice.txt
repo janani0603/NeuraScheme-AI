@@ -1,0 +1,519 @@
+================================================================================
+  NEURASCHEME AI — HANDOVER ADVICE FOR NEW AI TOOL
+  Everything a new AI needs to continue this project from Phase 5 onwards.
+  For UI/UX design, color palette, typography, page layouts, and feature
+  descriptions → refer to README.md
+================================================================================
+
+--------------------------------------------------------------------------------
+SECTION 1 — PROJECT LOCATION & STRUCTURE
+--------------------------------------------------------------------------------
+
+Root: d:\Projects\NeuraScheme AI\
+
+backend\                        → FastAPI Python backend
+  app\
+    agents\                     → LangGraph AI agents (all implemented)
+    api\                        → empty, not used
+    auth\                       → JWT + bcrypt auth
+    config\settings.py          → pydantic-settings config
+    database\connection.py      → Motor async MongoDB client
+    middleware\cors.py          → CORS config
+    models\                     → MongoDB document factories
+    routes\                     → 5 routers registered
+    schemas\                    → Pydantic request/response models
+    services\                   → Business logic
+    main.py                     → FastAPI app entry point
+  scripts\
+    import_dataset.py           → One-time CSV → MongoDB import
+    generate_embeddings.py      → One-time embedding generation
+  .env                          → Environment variables (see Section 3)
+  requirements.txt              → All dependencies (unpinned)
+  venv\                         → Python 3.11.9 virtual environment
+
+frontend\                       → React + Vite frontend (NOT YET BUILT)
+  src\
+    pages\                      → All page folders exist but are EMPTY
+      Landing\, Login\, Register\, Dashboard\, Explorer\, SchemeDetails\
+      Eligibility\, Assistant\, Saved\, Notifications\, Profile\, Admin\
+    components\                 → EMPTY — to be created
+    context\                    → EMPTY — to be created
+    hooks\                      → EMPTY — to be created
+    services\                   → EMPTY — to be created
+    routes\                     → EMPTY — to be created
+    styles\                     → EMPTY — to be created
+    utils\                      → EMPTY — to be created
+    App.jsx                     → Currently default Vite boilerplate, REPLACE IT
+    main.jsx                    → Standard Vite entry, keep as-is
+  package.json                  → Dependencies already installed
+  vite.config.js                → Default Vite config, no proxy set yet
+
+dataset\
+  cleaned_government_schemes.csv  → 3397 rows, already cleaned
+  government_schemes.csv          → Original raw Kaggle dataset
+
+--------------------------------------------------------------------------------
+SECTION 2 — PYTHON / ENVIRONMENT RULES (CRITICAL)
+--------------------------------------------------------------------------------
+
+- Python venv is at: backend\venv\
+- Python version inside venv: 3.11.9
+- System default Python is 3.14 — DO NOT USE IT for this project
+- Always use: "venv\Scripts\python.exe" (from d:\Projects\NeuraScheme AI\)
+- To install packages: "venv\Scripts\python.exe" -m pip install <package>
+  (Device Guard blocks pip.exe directly — always use python -m pip)
+- To verify imports: "venv\Scripts\python.exe" -c "from app.main import app; print('OK')"
+  Run this from: d:\Projects\NeuraScheme AI\backend\
+- To start server: cd backend && ..\venv\Scripts\uvicorn app.main:app --reload
+- NEVER run uvicorn as a blocking verification command — it will hang
+
+--------------------------------------------------------------------------------
+SECTION 3 — ENVIRONMENT VARIABLES (backend\.env)
+--------------------------------------------------------------------------------
+
+MONGODB_URI=mongodb+srv://nmani_userckam7447_db:dilHCoKMHnpfXIwB@cluster0.ivzoqfo.mongodb.net/?appName=Cluster0
+DATABASE_NAME=neurascheme
+JWT_SECRET=secret-for-neurascheme
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+GEMINI_API_KEY=AQ.Ab8RN6JzhU5m_RhB_r7vp9pWrkdrtNXizbXUXcpQJeRsGy4NJg
+GEMINI_MODEL=gemini-2.5-flash        (set in settings.py default, not in .env)
+EMBEDDING_MODEL=all-MiniLM-L6-v2     (set in settings.py default, not in .env)
+
+Frontend .env (does not exist yet — create at frontend\.env):
+VITE_API_BASE_URL=http://localhost:8000
+VITE_APP_NAME=NeuraScheme AI
+
+Notes:
+- GEMINI_API_KEY starts with "AQ." — this is unusual but confirmed working
+- It is a Google AI Studio key used with the google-genai SDK (NOT google-generativeai)
+- settings.py resolves .env using: Path(__file__).resolve().parents[2] / ".env"
+  meaning it looks 2 levels up from app/config/settings.py → backend/.env
+
+--------------------------------------------------------------------------------
+SECTION 4 — INSTALLED PACKAGES (key ones)
+--------------------------------------------------------------------------------
+
+- fastapi, uvicorn[standard]
+- motor (async MongoDB), pymongo (sync, used in scripts only)
+- python-jose[cryptography] (JWT)
+- passlib[bcrypt] (password hashing)
+- pydantic, pydantic-settings
+- google-genai==2.14.0  ← USE THIS, not google-generativeai (deprecated)
+- langgraph, langchain-core
+- sentence-transformers (uses torch 2.13.0 underneath)
+- tqdm, pandas, numpy, scikit-learn
+
+--------------------------------------------------------------------------------
+SECTION 5 — GEMINI API USAGE (CRITICAL)
+--------------------------------------------------------------------------------
+
+DO NOT use google-generativeai. It is deprecated.
+USE: from google import genai
+
+Correct usage pattern (already in backend/app/agents/gemini_client.py):
+
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key="AQ....")
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.3,
+            max_output_tokens=1024,
+        ),
+    )
+    text = response.text.strip()
+
+The gemini_client.py uses a singleton pattern. Call generate(prompt) from anywhere.
+
+--------------------------------------------------------------------------------
+SECTION 6 — MONGODB ATLAS DETAILS
+--------------------------------------------------------------------------------
+
+Cluster: cluster0.ivzoqfo.mongodb.net
+Database: neurascheme
+
+Collections:
+  schemes         → 3397 government schemes (imported from CSV)
+  users           → registered user accounts
+  recommendations → saved recommendation results per user
+  conversations   → AI assistant chat history
+  notifications   → (not yet implemented — Phase 8)
+
+Indexes on schemes collection (created by import_dataset.py):
+  - slug (unique, ascending)
+  - scheme_name (ascending)
+  - level (ascending)
+  - schemeCategory (ascending)
+  - tags (ascending)
+  - Text index on: scheme_name, details, benefits, eligibility, search_text
+
+Vector Search Index (MUST BE CREATED MANUALLY in Atlas UI):
+  - Index name: scheme_vector_index
+  - Collection: neurascheme.schemes
+  - Field: embedding
+  - Dimensions: 384
+  - Similarity: cosine
+  - This is required for the AI recommendation pipeline to use semantic search
+  - Without it, the system falls back to text search automatically
+
+Embedding field:
+  - Each scheme document has an "embedding" field (list of 384 floats)
+  - Generated by: python scripts/generate_embeddings.py
+  - Model: all-MiniLM-L6-v2 (sentence-transformers)
+  - Run from: d:\Projects\NeuraScheme AI\backend\
+  - Script is resume-safe — skips already-embedded documents
+
+--------------------------------------------------------------------------------
+SECTION 7 — BACKEND API ROUTES (all implemented)
+--------------------------------------------------------------------------------
+
+Auth (prefix: /auth)
+  POST /auth/register     → RegisterRequest → TokenResponse (JWT)
+  POST /auth/login        → LoginRequest → TokenResponse (JWT)
+
+Users (prefix: /users)
+  GET  /users/me          → UserProfileResponse (requires JWT)
+  PUT  /users/me          → UpdateProfileRequest → UserProfileResponse (requires JWT)
+
+Schemes (prefix: /schemes)
+  GET  /schemes                       → SchemeListResponse (paginated, filterable)
+  GET  /schemes/{slug}                → SchemeResponse
+  GET  /schemes/filters/categories    → list of categories
+  GET  /schemes/filters/tags          → list of tags
+  GET  /schemes/filters/levels        → list of levels
+
+  Query params for GET /schemes:
+    keyword, level, category, tag, page, page_size, sort_by, sort_order
+
+Recommendations (prefix: /recommendations)
+  POST /recommendations/check         → EligibilityRequest → RecommendationListResponse
+                                        (works for guests AND logged-in users)
+  GET  /recommendations/me            → RecommendationListResponse (requires JWT)
+  POST /recommendations/me/refresh    → RecommendationListResponse (requires JWT)
+                                        (re-runs engine using saved profile)
+
+AI (prefix: /ai)
+  POST /ai/recommendations            → AIRecommendationRequest → RecommendationListResponse
+                                        (full LangGraph pipeline, requires JWT)
+  POST /ai/recommendations/from-profile → RecommendationListResponse
+                                        (uses saved user profile, requires JWT)
+  POST /ai/assistant                  → AssistantRequest → AssistantResponse (requires JWT)
+  GET  /ai/conversations              → List[ConversationResponse] (requires JWT)
+  DELETE /ai/conversations/{id}       → 204 No Content (requires JWT)
+
+--------------------------------------------------------------------------------
+SECTION 8 — AUTHENTICATION DETAILS
+--------------------------------------------------------------------------------
+
+- JWT Bearer token authentication
+- Token stored in frontend localStorage (to be implemented)
+- Token format: Authorization: Bearer <token>
+- Token expiry: 60 minutes (ACCESS_TOKEN_EXPIRE_MINUTES)
+- OAuth2PasswordBearer tokenUrl="/auth/login"
+- get_current_user dependency: decodes token → fetches user from MongoDB
+- get_current_admin dependency: get_current_user + checks role == "admin"
+- Passwords hashed with bcrypt via passlib
+- bcrypt deprecation warning suppressed in password.py
+
+User roles: "user" (default), "admin"
+User document has: is_active (bool) — inactive users get 403
+
+--------------------------------------------------------------------------------
+SECTION 9 — USER DOCUMENT SCHEMA (MongoDB)
+--------------------------------------------------------------------------------
+
+{
+  _id: ObjectId,
+  name: str,
+  email: str (unique),
+  hashed_password: str,
+  phone: str | None,
+  date_of_birth: str | None,
+  gender: str | None,
+  state: str | None,
+  district: str | None,
+  occupation: str | None,
+  education: str | None,
+  annual_income: float | None,
+  category: str | None,       → "sc", "st", "obc", "ews", "general"
+  is_student: bool,
+  is_farmer: bool,
+  is_business_owner: bool,
+  has_disability: bool,
+  saved_schemes: [],          → list of scheme slugs (to be implemented)
+  role: "user" | "admin",
+  is_active: bool,
+  createdAt: datetime,
+  updatedAt: datetime
+}
+
+--------------------------------------------------------------------------------
+SECTION 10 — SCHEME DOCUMENT SCHEMA (MongoDB)
+--------------------------------------------------------------------------------
+
+{
+  _id: ObjectId,
+  scheme_name: str,
+  slug: str (unique),
+  details: str,
+  benefits: str,
+  eligibility: str,
+  application: str,
+  documents: str,
+  level: "Central" | "State",
+  schemeCategory: [str],      → e.g. ["Education & Learning", "Social Welfare"]
+  tags: [str],                → e.g. ["student", "scholarship", "women"]
+  search_text: str,           → combined text for full-text search
+  embedding: [float] | None,  → 384-dim vector from all-MiniLM-L6-v2
+  createdAt: datetime,
+  updatedAt: datetime
+}
+
+--------------------------------------------------------------------------------
+SECTION 11 — RECOMMENDATION DOCUMENT SCHEMA (MongoDB)
+--------------------------------------------------------------------------------
+
+{
+  _id: ObjectId,
+  userId: str,
+  schemeId: str,
+  scheme_name: str,
+  slug: str,
+  eligibility_score: float,   → 0–100
+  confidence_score: float,    → 0–100
+  matched_conditions: [str],
+  missing_conditions: [str],
+  explanation: str,
+  generatedAt: datetime
+}
+
+Note: When new recommendations are generated for a user, ALL previous
+recommendations for that user are deleted first (delete_many by userId).
+
+--------------------------------------------------------------------------------
+SECTION 12 — ELIGIBILITY SCORING ENGINE
+--------------------------------------------------------------------------------
+
+File: backend/app/services/eligibility_service.py
+
+6 weighted factors:
+  state:      25%  → Central = always match; State = check if state name in text
+  occupation: 20%  → keyword maps for student/farmer/entrepreneur/etc.
+  income:     20%  → checks for income-related keywords, then compares thresholds
+  category:   15%  → SC/ST/OBC/EWS/General keyword matching
+  education:  10%  → keyword maps for 10th/12th/diploma/graduate/etc.
+  tags:       10%  → disability, gender (female), student, farmer flags
+
+Scores are 0.0–1.0 per factor, multiplied by weight, summed → 0–100.
+Confidence score = eligibility_score * (0.6 + 0.4 * profile_completeness), capped at 100.
+MIN_SCORE threshold = 40.0 (schemes below this are excluded from results).
+
+Profile completeness is based on 7 fields: state, gender, occupation, education,
+annual_income, category, age.
+
+--------------------------------------------------------------------------------
+SECTION 13 — AI PIPELINE (LangGraph)
+--------------------------------------------------------------------------------
+
+File: backend/app/agents/workflow.py
+
+Graph nodes (in order):
+  1. profile_agent     → validates/normalizes profile, sets profile_valid flag
+  2. retrieval_agent   → MongoDB Atlas Vector Search → fallback text search
+  3. eligibility_agent → rule-based scoring + optional Gemini assist for borderline
+  4. recommendation_agent → combined score + Gemini re-ranking of top 20
+  5. explanation_agent → Gemini explanations for top 10, fallback for rest
+
+Conditional edges:
+  - profile → END if profile_valid is False
+  - retrieval → END if no candidates found
+  - eligibility → END if no scored schemes
+  - recommendation → explanation → END (always)
+
+AgentState TypedDict fields:
+  user_id, profile, question, conversation_id,
+  profile_valid, profile_completeness, candidates, scored_schemes,
+  ranked_schemes, explanations, final_recommendations, assistant_response, error
+
+Combined score formula (recommendation_agent):
+  (eligibility_score/100 * 0.60) + (vector_score * 0.25) + (completeness * 0.15)
+
+Gemini is called for:
+  - Borderline eligibility interpretation (score 35–45, eligibility text > 100 chars)
+  - Re-ranking top 20 schemes (ranking_prompt)
+  - Explanations for top 10 schemes (explanation_prompt)
+  - All assistant chat responses (assistant_prompt)
+
+All Gemini calls have try/except with fallback — pipeline never crashes on Gemini failure.
+
+--------------------------------------------------------------------------------
+SECTION 14 — CONVERSATION / ASSISTANT DETAILS
+--------------------------------------------------------------------------------
+
+File: backend/app/agents/application_agent.py
+
+- Conversations stored in MongoDB "conversations" collection
+- Each conversation has: userId, messages[], createdAt, updatedAt
+- Each message has: question, response, scheme_slugs[], timestamp
+- MAX_HISTORY = 10 messages included in context
+- conversation_id is a string (ObjectId as string, not ObjectId type)
+- New conversation created automatically if conversation_id is None or not found
+- Scheme context built from scheme_slugs passed in the request
+- Assistant answers ONLY from provided scheme data — grounded, no hallucination
+
+--------------------------------------------------------------------------------
+SECTION 15 — FRONTEND SETUP (current state)
+--------------------------------------------------------------------------------
+
+Framework: React 19 + Vite 8
+Router: react-router-dom v7
+HTTP: axios v1
+Animation: framer-motion v12
+Charts: recharts v3
+
+Frontend runs on: http://localhost:5173
+Backend runs on: http://localhost:8000
+CORS allows: localhost:5173 and localhost:3000
+
+Current state of frontend:
+- App.jsx is DEFAULT VITE BOILERPLATE — must be completely replaced
+- All page folders exist but are empty
+- No components, no routes, no services, no context created yet
+- index.css and App.css exist but contain default Vite styles — replace them
+
+To start frontend dev server:
+  cd frontend && npm run dev
+
+Vite proxy NOT configured yet. Add to vite.config.js:
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  }
+  OR just use VITE_API_BASE_URL=http://localhost:8000 in axios baseURL directly.
+
+--------------------------------------------------------------------------------
+SECTION 16 — FRONTEND RULES (STRICT)
+--------------------------------------------------------------------------------
+
+- Pure CSS3 ONLY — no Tailwind, no Bootstrap, no Material UI, no CSS frameworks
+- No mock data anywhere — all data comes from the backend API
+- Do not remove existing code unless explicitly asked
+- Do not add tests unless explicitly asked
+- Follow the existing folder structure exactly (refer to README.md for structure)
+- Components must be reusable
+- Responsive design required: mobile (<768px), tablet (768–1024px), desktop (>1024px)
+- Design system: refer to README.md for colors, typography, border radius, shadows
+
+--------------------------------------------------------------------------------
+SECTION 17 — WHAT REMAINS TO BE BUILT
+--------------------------------------------------------------------------------
+
+PHASE 5 — Data Pipeline (one-time setup, not code)
+  1. Run: cd backend && ..\venv\Scripts\python.exe scripts\import_dataset.py
+     (imports 3397 schemes from dataset\cleaned_government_schemes.csv into MongoDB)
+  2. Run: cd backend && ..\venv\Scripts\python.exe scripts\generate_embeddings.py
+     (generates 384-dim embeddings for all schemes — takes several minutes)
+  3. In MongoDB Atlas UI → Search Indexes → Create Vector Search Index:
+     Collection: neurascheme.schemes
+     Index name: scheme_vector_index
+     Field: embedding, dimensions: 384, similarity: cosine
+
+PHASE 6 — Frontend (largest phase)
+  Refer to README.md for detailed page-by-page UI specifications.
+  Pages to build:
+    - Landing page (public)
+    - Login page (public)
+    - Register page (multi-step, 4 steps, public)
+    - Dashboard (protected)
+    - Scheme Explorer (public + enhanced when logged in)
+    - Scheme Details page (public)
+    - Eligibility Checker with AI progress animation (protected)
+    - AI Assistant chat (protected)
+    - Saved Schemes (protected)
+    - Notifications (protected)
+    - Profile page (protected)
+    - Admin dashboard (admin role only)
+
+  Key frontend files to create:
+    - src/services/api.js          → axios instance with baseURL + interceptors
+    - src/context/AuthContext.jsx  → JWT token storage, user state, login/logout
+    - src/routes/AppRoutes.jsx     → React Router routes with protected route wrapper
+    - src/components/layout/       → Navbar, Sidebar, BottomNav (mobile)
+    - src/hooks/useAuth.js         → hook to consume AuthContext
+
+PHASE 7 — Integration & Polish
+  - Wire all pages to real API endpoints
+  - JWT token: store in localStorage, attach as Authorization: Bearer header
+  - Handle token expiry (401 → redirect to login)
+  - Loading states for all async operations
+  - Error handling with user-friendly messages
+  - Responsive layout testing
+
+PHASE 8 — Admin + Notifications (optional for MVP)
+  Backend:
+    - POST /admin/schemes          → add scheme
+    - PUT  /admin/schemes/{slug}   → update scheme
+    - DELETE /admin/schemes/{slug} → delete scheme
+    - GET /admin/analytics         → basic stats
+  Notification system:
+    - notifications collection already defined in MongoDB
+    - Need: background job or trigger to create deadline/new scheme notifications
+    - GET /notifications, PATCH /notifications/{id}/read, DELETE /notifications/{id}
+
+--------------------------------------------------------------------------------
+SECTION 18 — SAVED SCHEMES (partially designed, not implemented)
+--------------------------------------------------------------------------------
+
+The user document has a saved_schemes field (list of slugs).
+Backend endpoints for save/unsave are NOT yet implemented.
+Need to add to routes/users.py or a new routes/saved.py:
+  POST /schemes/{slug}/save    → add slug to user.saved_schemes
+  DELETE /schemes/{slug}/save  → remove slug from user.saved_schemes
+  GET /users/me/saved          → return full scheme objects for saved slugs
+
+--------------------------------------------------------------------------------
+SECTION 19 — WINDOWS-SPECIFIC NOTES
+--------------------------------------------------------------------------------
+
+- OS: Windows
+- stdout wrapped with UTF-8 in main.py to handle emoji in Windows terminal
+- connection.py uses emoji (✅ ❌) — this is intentional, do not remove
+- Use cmd /c wrapper when running executeBash tool commands
+- Path separator is backslash on Windows but Python pathlib handles both
+- venv activation: venv\Scripts\activate (cmd) or venv\Scripts\Activate.ps1 (PowerShell)
+
+--------------------------------------------------------------------------------
+SECTION 20 — VERIFICATION COMMANDS
+--------------------------------------------------------------------------------
+
+Check backend imports are clean (run from backend\ directory):
+  ..\venv\Scripts\python.exe -c "from app.main import app; print('OK')"
+
+Check a specific package is installed:
+  ..\venv\Scripts\python.exe -c "import google.genai; print('OK')"
+
+Check MongoDB connection:
+  ..\venv\Scripts\python.exe -c "
+  import asyncio
+  from app.database.connection import connect_to_mongodb
+  asyncio.run(connect_to_mongodb())
+  "
+
+Start backend server (from backend\ directory):
+  ..\venv\Scripts\uvicorn app.main:app --reload --port 8000
+
+Start frontend (from frontend\ directory):
+  npm run dev
+
+--------------------------------------------------------------------------------
+END OF ADVICE FILE
+================----------------------------------------------------------------
