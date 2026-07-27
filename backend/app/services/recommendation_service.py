@@ -113,26 +113,37 @@ async def get_user_recommendations(user_id: str) -> dict:
     ).sort("eligibility_score", -1)
 
     docs = await cursor.to_list(length=50)
+    if not docs:
+        return {"total": 0, "profile_completeness": 0, "recommendations": []}
 
-    results = [
-        {
+    # Fetch full scheme data to populate missing fields
+    slugs = [d["slug"] for d in docs if d.get("slug")]
+    scheme_docs = await db["schemes"].find(
+        {"slug": {"$in": slugs}}, {"embedding": 0}
+    ).to_list(length=50)
+    scheme_map = {s["slug"]: s for s in scheme_docs}
+
+    results = []
+    for d in docs:
+        slug = d.get("slug", "")
+        scheme = scheme_map.get(slug, {})
+        results.append({
             "id": str(d["_id"]),
             "scheme_name": d.get("scheme_name", ""),
-            "slug": d.get("slug", ""),
-            "level": "",
-            "schemeCategory": [],
-            "tags": [],
-            "benefits": "",
-            "documents": "",
+            "slug": slug,
+            "level": scheme.get("level", ""),
+            "schemeCategory": scheme.get("schemeCategory", []),
+            "tags": scheme.get("tags", []),
+            "benefits": scheme.get("benefits", ""),
+            "documents": scheme.get("documents", ""),
+            "details": scheme.get("details", ""),
             "eligibility_score": d.get("eligibility_score", 0),
             "confidence_score": d.get("confidence_score", 0),
             "matched_conditions": d.get("matched_conditions", []),
             "missing_conditions": d.get("missing_conditions", []),
             "explanation": d.get("explanation", ""),
             "generatedAt": d["generatedAt"].isoformat() if d.get("generatedAt") else "",
-        }
-        for d in docs
-    ]
+        })
 
     return {
         "total": len(results),

@@ -2,6 +2,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings
 
 _ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+_BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -13,6 +14,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-2.5-flash"
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    CHROMA_DB_PATH: str = str(_BASE_DIR / "chroma_db")
 
     model_config = {"env_file": str(_ENV_FILE), "extra": "ignore"}
 

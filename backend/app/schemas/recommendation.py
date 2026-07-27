@@ -29,6 +29,7 @@ class RecommendationResult(BaseModel):
     tags: List[str]
     benefits: str
     documents: str
+    details: Optional[str] = None
     eligibility_score: float
     confidence_score: float
     matched_conditions: List[str]

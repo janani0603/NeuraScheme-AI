@@ -104,6 +104,7 @@ async def run_recommendation_pipeline(profile: dict, user_id: str) -> dict:
             "tags": scheme.get("tags", []),
             "benefits": scheme.get("benefits", ""),
             "documents": scheme.get("documents", ""),
+            "details": scheme.get("details", ""),
             "eligibility_score": item["eligibility_score"],
             "confidence_score": item["confidence_score"],
             "matched_conditions": item["matched_conditions"],

@@ -42,6 +42,6 @@ async def create_user(data: dict) -> dict:
 async def update_user_profile(user_id: str, updates: dict) -> Optional[dict]:
     updates["updatedAt"] = datetime.now(UTC)
     # Remove None values so we don't overwrite existing fields with null
-    clean = {k: v for k, v in updates.items() if v is not None}
+    clean = {k: v for k, v in updates.items() if v is not None and v != ""}
     await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": clean})
     return await get_user_by_id(user_id)

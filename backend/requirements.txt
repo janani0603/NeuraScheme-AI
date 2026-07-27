@@ -27,3 +27,4 @@ google-genai
 langgraph
 langchain-core
 sentence-transformers
+chromadb

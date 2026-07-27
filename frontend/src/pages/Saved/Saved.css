@@ -1,0 +1,15 @@
+.saved-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.schemes-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .schemes-grid-2 { grid-template-columns: 1fr; }
+}

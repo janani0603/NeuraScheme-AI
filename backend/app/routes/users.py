@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timezone
 
 from app.auth.dependencies import get_current_user
 from app.schemas.user import UserProfileResponse, UpdateProfileRequest
 from app.services.user_service import update_user_profile
+from app.database.connection import db
 
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -51,3 +53,17 @@ async def update_profile(
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return _serialize(updated)
+
+
+@router.get("/me/saved")
+async def get_saved_schemes(current_user: dict = Depends(get_current_user)):
+    saved_slugs = current_user.get("saved_schemes", [])
+    if not saved_slugs:
+        return []
+    schemes = await db.schemes.find(
+        {"slug": {"$in": saved_slugs}},
+        {"embedding": 0}
+    ).to_list(length=100)
+    for s in schemes:
+        s["_id"] = str(s["_id"])
+    return schemes

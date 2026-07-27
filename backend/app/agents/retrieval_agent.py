@@ -1,6 +1,8 @@
 import logging
+from typing import Optional
 from app.agents.profile_agent import AgentState
 from app.agents.embedding_model import embed_text
+from app.agents.chroma_client import chroma_query, chroma_count
 from app.database.connection import db
 
 logger = logging.getLogger(__name__)
@@ -32,10 +34,30 @@ def _build_query_text(profile: dict) -> str:
     return " ".join(parts) if parts else "government welfare scheme"
 
 
+def _build_chroma_filter(profile: dict) -> Optional[dict]:
+    """
+    Build a ChromaDB metadata pre-filter to narrow candidates before vector search.
+    Only filters on level (Central always included).
+    Returns None if no useful filter can be built.
+    """
+    state = (profile.get("state") or "").strip().lower()
+    if not state:
+        return None
+
+    # Include Central schemes always + state-specific schemes
+    # ChromaDB $or filter syntax
+    return {
+        "$or": [
+            {"level": {"$eq": "Central"}},
+            {"level": {"$eq": "State"}},
+        ]
+    }
+
+
 async def retrieval_agent(state: AgentState) -> AgentState:
     """
-    Performs semantic search using MongoDB Atlas Vector Search.
-    Falls back to text search if no embeddings are available.
+    Retrieves candidate schemes using ChromaDB semantic search.
+    Falls back to MongoDB text search if ChromaDB is empty or unavailable.
     """
     if not state.get("profile_valid"):
         return {**state, "candidates": []}
@@ -43,44 +65,47 @@ async def retrieval_agent(state: AgentState) -> AgentState:
     profile = state["profile"]
     query_text = _build_query_text(profile)
 
+    # ── Step 1: ChromaDB semantic search ──────────────────────────────────────
     try:
-        query_vector = embed_text(query_text)
+        if chroma_count() > 0:
+            query_vector = embed_text(query_text)
+            where_filter = _build_chroma_filter(profile)
 
-        # MongoDB Atlas Vector Search pipeline
-        pipeline = [
-            {
-                "$vectorSearch": {
-                    "index": "scheme_vector_index",
-                    "path": "embedding",
-                    "queryVector": query_vector,
-                    "numCandidates": VECTOR_CANDIDATES * 2,
-                    "limit": VECTOR_CANDIDATES,
-                }
-            },
-            {
-                "$addFields": {
-                    "vector_score": {"$meta": "vectorSearchScore"}
-                }
-            },
-        ]
+            chroma_hits = chroma_query(
+                query_vector=query_vector,
+                n_results=VECTOR_CANDIDATES,
+                where=where_filter,
+            )
 
-        cursor = db["schemes"].aggregate(pipeline)
-        candidates = await cursor.to_list(length=VECTOR_CANDIDATES)
+            if chroma_hits:
+                # Fetch full scheme documents from MongoDB by slug
+                slugs = [h["slug"] for h in chroma_hits]
+                slug_to_score = {h["slug"]: h["vector_score"] for h in chroma_hits}
 
-        if candidates:
-            logger.info(f"Vector search returned {len(candidates)} candidates")
-            return {**state, "candidates": candidates}
+                cursor = db["schemes"].find({"slug": {"$in": slugs}})
+                docs = await cursor.to_list(length=VECTOR_CANDIDATES)
+
+                # Attach vector_score to each document
+                for doc in docs:
+                    doc["vector_score"] = slug_to_score.get(doc.get("slug", ""), 0.0)
+
+                # Preserve ChromaDB ranking order
+                slug_order = {slug: i for i, slug in enumerate(slugs)}
+                docs.sort(key=lambda d: slug_order.get(d.get("slug", ""), 999))
+
+                logger.info(f"ChromaDB returned {len(docs)} candidates")
+                return {**state, "candidates": docs}
 
     except Exception as e:
-        logger.warning(f"Vector search failed, falling back to text search: {e}")
+        logger.warning(f"ChromaDB search failed, falling back to MongoDB text search: {e}")
 
-    # Fallback — broad text/filter search
+    # ── Step 2: MongoDB text search fallback ──────────────────────────────────
     candidates = await _fallback_search(profile)
     return {**state, "candidates": candidates}
 
 
 async def _fallback_search(profile: dict) -> list:
-    """Text search fallback when vector search is unavailable."""
+    """MongoDB regex/text search fallback when ChromaDB is unavailable."""
     query = {}
     keywords = []
 
@@ -94,14 +119,19 @@ async def _fallback_search(profile: dict) -> list:
         keywords.append(profile["occupation"])
 
     if keywords:
-        query["$text"] = {"$search": " ".join(keywords)}
+        search_str = "|".join(keywords)
+        query["$or"] = [
+            {"scheme_name": {"$regex": search_str, "$options": "i"}},
+            {"eligibility": {"$regex": search_str, "$options": "i"}},
+            {"tags": {"$regex": search_str, "$options": "i"}},
+        ]
 
     cursor = db["schemes"].find(query).limit(FALLBACK_CANDIDATES)
     candidates = await cursor.to_list(length=FALLBACK_CANDIDATES)
 
-    # If still empty, return a broad sample
     if not candidates:
         cursor = db["schemes"].find({}).limit(FALLBACK_CANDIDATES)
         candidates = await cursor.to_list(length=FALLBACK_CANDIDATES)
 
+    logger.info(f"MongoDB fallback returned {len(candidates)} candidates")
     return candidates

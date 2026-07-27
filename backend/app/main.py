@@ -15,6 +15,7 @@ from app.routes.users import router as users_router
 from app.routes.schemes import router as schemes_router
 from app.routes.recommendations import router as recommendations_router
 from app.routes.ai import router as ai_router
+from app.routes.admin import router as admin_router
 
 
 @asynccontextmanager
@@ -37,6 +38,7 @@ app.include_router(users_router)
 app.include_router(schemes_router)
 app.include_router(recommendations_router)
 app.include_router(ai_router)
+app.include_router(admin_router)
 
 
 @app.get("/")

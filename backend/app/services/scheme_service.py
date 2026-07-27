@@ -33,9 +33,14 @@ async def get_schemes(
 ) -> dict:
     query = {}
 
-    # Full-text search using MongoDB text index
+    # Keyword search — use $regex instead of $text to avoid index conflicts
     if keyword:
-        query["$text"] = {"$search": keyword}
+        query["$or"] = [
+            {"scheme_name": {"$regex": keyword, "$options": "i"}},
+            {"details": {"$regex": keyword, "$options": "i"}},
+            {"eligibility": {"$regex": keyword, "$options": "i"}},
+            {"benefits": {"$regex": keyword, "$options": "i"}},
+        ]
 
     # Exact filters
     if level:
@@ -48,14 +53,8 @@ async def get_schemes(
         query["tags"] = {"$regex": tag, "$options": "i"}
 
     sort_direction = 1 if sort_order == "asc" else -1
-
-    # When using $text search, sort by text score for relevance
-    if keyword:
-        sort_spec = [("score", {"$meta": "textScore"})]
-        projection = {"score": {"$meta": "textScore"}}
-    else:
-        sort_spec = [(sort_by, sort_direction)]
-        projection = None
+    sort_spec = [(sort_by, sort_direction)]
+    projection = {"embedding": 0}
 
     total = await db["schemes"].count_documents(query)
     total_pages = max(1, -(-total // page_size))  # ceiling division

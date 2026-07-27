@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional, List
+from typing import Optional, List, Any
 
 
 # ── Register ──────────────────────────────────────────────────────────────────
@@ -55,6 +55,9 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    user: Optional[Any] = None
+
+    model_config = {"arbitrary_types_allowed": True}
 
 
 # ── User Profile ──────────────────────────────────────────────────────────────
