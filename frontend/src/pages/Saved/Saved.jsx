@@ -4,6 +4,7 @@ import Navbar from '../../components/layout/Navbar'
 import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
 import SchemeCard from '../../components/cards/SchemeCard'
+import { Bookmark } from 'lucide-react'
 import api from '../../services/api'
 import './Saved.css'
 
@@ -31,7 +32,7 @@ export default function Saved() {
             <div className="loading-center"><div className="loading-spinner" /></div>
           ) : schemes.length === 0 ? (
             <div className="empty-state card">
-              <div className="empty-icon">❤️</div>
+              <div className="empty-icon"><Bookmark size={40} strokeWidth={1.5} /></div>
               <h3>No saved schemes yet</h3>
               <p>Browse schemes and save the ones you're interested in.</p>
               <Link to="/explore" className="btn btn-primary" style={{ marginTop: 16 }}>Explore Schemes</Link>

@@ -93,6 +93,9 @@
   transition: all var(--transition);
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,201,184,0.3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .new-chat-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
 
@@ -331,6 +334,18 @@
   background: var(--primary-light);
   color: var(--primary);
   border: 1px solid rgba(0,201,184,0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Markdown */

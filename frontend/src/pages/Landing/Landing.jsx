@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../../components/layout/Navbar'
+import {
+  Search, Target, CheckCircle, Bot, FileText, Bell,
+  User, Brain, ClipboardList, GraduationCap, Wheat,
+  Home, HeartPulse, Zap, Building2, Baby, Factory,
+  Rocket, Lightbulb, ArrowRight
+} from 'lucide-react'
 import './Landing.css'
 
 const testimonials = [
@@ -10,45 +16,45 @@ const testimonials = [
 ]
 
 const trustLogos = [
-  '🏛️ Ministry of Finance',
-  '🌾 PM Kisan',
-  '🎓 NSP Scholarships',
-  '🏠 PM Awas Yojana',
-  '💊 Ayushman Bharat',
-  '⚡ PM KUSUM',
-  '👩 Beti Bachao',
-  '🏭 Make in India',
+  { icon: Building2, label: 'Ministry of Finance' },
+  { icon: Wheat, label: 'PM Kisan' },
+  { icon: GraduationCap, label: 'NSP Scholarships' },
+  { icon: Home, label: 'PM Awas Yojana' },
+  { icon: HeartPulse, label: 'Ayushman Bharat' },
+  { icon: Zap, label: 'PM KUSUM' },
+  { icon: Baby, label: 'Beti Bachao' },
+  { icon: Factory, label: 'Make in India' },
 ]
 
 const features = [
-  { icon: '🔍', title: 'Smart Search', desc: 'Search thousands of schemes by keyword, category, state, or occupation in seconds.', color: '#2563EB' },
-  { icon: '🎯', title: 'AI Recommendations', desc: 'Multi-agent AI analyzes your profile and ranks schemes by eligibility score.', color: '#7C3AED' },
-  { icon: '✅', title: 'Eligibility Checker', desc: 'Instantly know which schemes you qualify for with detailed condition scoring.', color: '#059669' },
-  { icon: '🤖', title: 'AI Assistant', desc: 'Ask anything about any scheme and get instant, grounded answers.', color: '#DC2626' },
-  { icon: '📄', title: 'Document Guidance', desc: 'Know exactly which documents you need before you start applying.', color: '#D97706' },
-  { icon: '🔔', title: 'Deadline Alerts', desc: 'Never miss an application deadline with smart notifications.', color: '#0891B2' },
+  { icon: Search, title: 'Smart Search', desc: 'Search thousands of schemes by keyword, category, state, or occupation in seconds.', color: '#1A4FA0' },
+  { icon: Target, title: 'AI Recommendations', desc: 'Multi-agent AI analyzes your profile and ranks schemes by eligibility score.', color: '#7C3AED' },
+  { icon: CheckCircle, title: 'Eligibility Checker', desc: 'Instantly know which schemes you qualify for with detailed condition scoring.', color: '#059669' },
+  { icon: Bot, title: 'AI Assistant', desc: 'Ask anything about any scheme and get instant, grounded answers.', color: '#DC2626' },
+  { icon: FileText, title: 'Document Guidance', desc: 'Know exactly which documents you need before you start applying.', color: '#D97706' },
+  { icon: Bell, title: 'Deadline Alerts', desc: 'Never miss an application deadline with smart notifications.', color: '#0891B2' },
 ]
 
 const steps = [
   {
     number: '01',
-    icon: '👤',
+    icon: User,
     title: 'Create Your Profile',
     desc: 'Tell us about yourself — your state, occupation, income, education, and category. Takes less than 2 minutes.',
     detail: 'Your data is secure and used only to match you with relevant schemes.',
-    color: '#2563EB',
+    color: '#1A4FA0',
   },
   {
     number: '02',
-    icon: '🧠',
+    icon: Brain,
     title: 'AI Analyzes Schemes',
-    desc: 'Our 6-agent AI pipeline scans 3,397 government schemes and scores each one against your profile.',
+    desc: 'Our 9-agent AI pipeline scans 3,397 government schemes and scores each one against your profile.',
     detail: 'Uses semantic search + rule-based eligibility engine for accuracy.',
     color: '#7C3AED',
   },
   {
     number: '03',
-    icon: '✅',
+    icon: CheckCircle,
     title: 'Eligibility Scoring',
     desc: 'Each scheme gets a personalized eligibility score based on state, income, occupation, category, and more.',
     detail: 'Matched and missing conditions are clearly shown for every scheme.',
@@ -56,7 +62,7 @@ const steps = [
   },
   {
     number: '04',
-    icon: '🎯',
+    icon: Target,
     title: 'Get Ranked Results',
     desc: 'Receive a ranked list of schemes best suited for you, sorted by how well you qualify.',
     detail: 'Top matches include AI-written personalized explanations.',
@@ -64,7 +70,7 @@ const steps = [
   },
   {
     number: '05',
-    icon: '📋',
+    icon: ClipboardList,
     title: 'Apply with Guidance',
     desc: 'Follow step-by-step application instructions with document checklists for each scheme.',
     detail: 'Ask the AI assistant any question about the scheme before applying.',
@@ -75,8 +81,16 @@ const steps = [
 const stats = [
   { value: 3397, label: 'Government Schemes', suffix: '+' },
   { value: 28, label: 'States Covered', suffix: '+' },
-  { value: 6, label: 'AI Agents', suffix: '' },
+  { value: 9, label: 'AI Agents', suffix: '' },
   { value: 100, label: 'Free Forever', suffix: '%' },
+]
+
+// Phone mock card data
+const phoneCards = [
+  { icon: GraduationCap, name: 'National Scholarship', cat: 'Education · Central', score: '96%', scoreClass: 'pc-score-high', active: true },
+  { icon: Wheat, name: 'PM Kisan Yojana', cat: 'Agriculture · Central', score: '88%', scoreClass: 'pc-score-high', active: false },
+  { icon: Home, name: 'PM Awas Yojana', cat: 'Housing · Central', score: '74%', scoreClass: 'pc-score-med', active: false },
+  { icon: HeartPulse, name: 'Ayushman Bharat', cat: 'Health · Central', score: '68%', scoreClass: 'pc-score-med', active: false },
 ]
 
 function useCountUp(target, duration = 1800) {
@@ -130,7 +144,7 @@ export default function Landing() {
     <div className="landing">
       <Navbar />
 
-      {/* ── Hero ── */}
+      {/* Hero */}
       <section className="hero-section">
         <div className="hero-bg-orb hero-orb-1" />
         <div className="hero-bg-orb hero-orb-2" />
@@ -139,7 +153,7 @@ export default function Landing() {
           <div className="hero-content">
             <div className="hero-badge">
               <span className="hero-badge-dot" />
-              🇮🇳 India's Smartest Scheme Discovery Platform
+              India's Smartest Scheme Discovery Platform
             </div>
             <h1 className="hero-title">
               Find Government Schemes<br />
@@ -151,10 +165,10 @@ export default function Landing() {
             </p>
             <div className="hero-actions">
               <Link to="/register" className="btn btn-primary btn-lg hero-cta-primary">
-                🚀 Get Started Free
+                <Rocket size={16} /> Get Started Free
               </Link>
               <Link to="/explore" className="btn btn-outline btn-lg">
-                Browse Schemes →
+                Browse Schemes <ArrowRight size={15} />
               </Link>
             </div>
             <div className="hero-stats">
@@ -169,7 +183,7 @@ export default function Landing() {
               </div>
               <div className="hero-stat-divider" />
               <div className="hero-stat">
-                <strong ref={ref6}>6</strong>
+                <strong ref={ref6}>9</strong>
                 <span>AI Agents</span>
               </div>
               <div className="hero-stat-divider" />
@@ -185,73 +199,53 @@ export default function Landing() {
               <div className="phone-header">
                 <div className="phone-dot" /><div className="phone-dot" /><div className="phone-dot" />
               </div>
-              <div className="phone-title">🧠 AI Recommendations</div>
+              <div className="phone-title"><Brain size={14} /> AI Recommendations</div>
               <div className="phone-cards">
-                <div className="phone-card phone-card-active">
-                  <div className="pc-left">
-                    <div className="pc-icon">🎓</div>
-                    <div>
-                      <div className="pc-name">National Scholarship</div>
-                      <div className="pc-cat">Education · Central</div>
+                {phoneCards.map((c) => {
+                  const CardIcon = c.icon
+                  return (
+                    <div key={c.name} className={`phone-card ${c.active ? 'phone-card-active' : ''}`}>
+                      <div className="pc-left">
+                        <div className="pc-icon"><CardIcon size={16} /></div>
+                        <div>
+                          <div className="pc-name">{c.name}</div>
+                          <div className="pc-cat">{c.cat}</div>
+                        </div>
+                      </div>
+                      <div className={`pc-score ${c.scoreClass}`}>{c.score}</div>
                     </div>
-                  </div>
-                  <div className="pc-score pc-score-high">96%</div>
-                </div>
-                <div className="phone-card">
-                  <div className="pc-left">
-                    <div className="pc-icon">🌾</div>
-                    <div>
-                      <div className="pc-name">PM Kisan Yojana</div>
-                      <div className="pc-cat">Agriculture · Central</div>
-                    </div>
-                  </div>
-                  <div className="pc-score pc-score-high">88%</div>
-                </div>
-                <div className="phone-card">
-                  <div className="pc-left">
-                    <div className="pc-icon">🏠</div>
-                    <div>
-                      <div className="pc-name">PM Awas Yojana</div>
-                      <div className="pc-cat">Housing · Central</div>
-                    </div>
-                  </div>
-                  <div className="pc-score pc-score-med">74%</div>
-                </div>
-                <div className="phone-card">
-                  <div className="pc-left">
-                    <div className="pc-icon">💊</div>
-                    <div>
-                      <div className="pc-name">Ayushman Bharat</div>
-                      <div className="pc-cat">Health · Central</div>
-                    </div>
-                  </div>
-                  <div className="pc-score pc-score-med">68%</div>
-                </div>
+                  )
+                })}
               </div>
               <div className="phone-footer">
-                <span>✅ 4 schemes matched</span>
-                <span className="phone-ai-tag">🧠 AI Powered</span>
+                <span><CheckCircle size={12} /> 4 schemes matched</span>
+                <span className="phone-ai-tag"><Brain size={12} /> AI Powered</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Trust Bar ── */}
+      {/* Trust Bar */}
       <section className="trust-section">
         <div className="container">
           <p className="trust-label">Covering schemes from</p>
           <div className="trust-track">
             <div className="trust-logos">
-              {[...trustLogos, ...trustLogos].map((l, i) => (
-                <div key={i} className="trust-logo">{l}</div>
-              ))}
+              {[...trustLogos, ...trustLogos].map((l, i) => {
+                const TrustIcon = l.icon
+                return (
+                  <div key={i} className="trust-logo">
+                    <TrustIcon size={15} /> {l.label}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Features ── */}
+      {/* Features */}
       <section className="features-section" id="features">
         <div className="container">
           <div className="section-header reveal">
@@ -260,21 +254,24 @@ export default function Landing() {
             <p>Powerful AI tools that make government schemes accessible to every citizen</p>
           </div>
           <div className="features-grid">
-            {features.map((f, i) => (
-              <div key={f.title} className="feature-card card reveal" style={{ animationDelay: `${i * 0.08}s` }}>
-                <div className="feature-icon-wrap" style={{ background: f.color + '15', color: f.color }}>
-                  <span>{f.icon}</span>
+            {features.map((f, i) => {
+              const FIcon = f.icon
+              return (
+                <div key={f.title} className="feature-card card reveal" style={{ animationDelay: `${i * 0.08}s` }}>
+                  <div className="feature-icon-wrap" style={{ background: f.color + '15', color: f.color }}>
+                    <FIcon size={22} />
+                  </div>
+                  <h3>{f.title}</h3>
+                  <p>{f.desc}</p>
+                  <div className="feature-arrow" style={{ color: f.color }}><ArrowRight size={16} /></div>
                 </div>
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
-                <div className="feature-arrow" style={{ color: f.color }}>→</div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* ── How It Works ── */}
+      {/* How It Works */}
       <section className="how-section" id="about">
         <div className="container">
           <div className="section-header reveal">
@@ -284,7 +281,6 @@ export default function Landing() {
           </div>
 
           <div className="how-layout">
-            {/* Step selector */}
             <div className="steps-nav">
               {steps.map((step, i) => (
                 <button
@@ -302,69 +298,71 @@ export default function Landing() {
               ))}
             </div>
 
-            {/* Step detail */}
             <div className="step-detail-panel">
-              {steps.map((step, i) => (
-                <div
-                  key={step.number}
-                  className={`step-detail ${activeStep === i ? 'active' : ''}`}
-                >
-                  <div className="step-detail-icon" style={{ background: step.color + '15', color: step.color }}>
-                    {step.icon}
+              {steps.map((step, i) => {
+                const StepIcon = step.icon
+                return (
+                  <div key={step.number} className={`step-detail ${activeStep === i ? 'active' : ''}`}>
+                    <div className="step-detail-icon" style={{ background: step.color + '15', color: step.color }}>
+                      <StepIcon size={28} />
+                    </div>
+                    <div className="step-detail-number" style={{ color: step.color }}>{step.number}</div>
+                    <h3 className="step-detail-title">{step.title}</h3>
+                    <p className="step-detail-desc">{step.desc}</p>
+                    <div className="step-detail-note">
+                      <span className="step-note-icon"><Lightbulb size={14} /></span>
+                      {step.detail}
+                    </div>
+                    <div className="step-detail-progress">
+                      {steps.map((_, j) => (
+                        <div
+                          key={j}
+                          className={`progress-dot ${j === i ? 'active' : j < i ? 'done' : ''}`}
+                          onClick={() => setActiveStep(j)}
+                        />
+                      ))}
+                    </div>
+                    <div className="step-detail-actions">
+                      {i > 0 && (
+                        <button className="btn btn-ghost btn-sm" onClick={() => setActiveStep(i - 1)}>← Prev</button>
+                      )}
+                      {i < steps.length - 1 ? (
+                        <button className="btn btn-primary btn-sm" onClick={() => setActiveStep(i + 1)} style={{ marginLeft: 'auto' }}>Next →</button>
+                      ) : (
+                        <Link to="/register" className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }}>Get Started →</Link>
+                      )}
+                    </div>
                   </div>
-                  <div className="step-detail-number" style={{ color: step.color }}>{step.number}</div>
-                  <h3 className="step-detail-title">{step.title}</h3>
-                  <p className="step-detail-desc">{step.desc}</p>
-                  <div className="step-detail-note">
-                    <span className="step-note-icon">💡</span>
-                    {step.detail}
-                  </div>
-                  <div className="step-detail-progress">
-                    {steps.map((_, j) => (
-                      <div
-                        key={j}
-                        className={`progress-dot ${j === i ? 'active' : j < i ? 'done' : ''}`}
-                        onClick={() => setActiveStep(j)}
-                      />
-                    ))}
-                  </div>
-                  <div className="step-detail-actions">
-                    {i > 0 && (
-                      <button className="btn btn-ghost btn-sm" onClick={() => setActiveStep(i - 1)}>← Prev</button>
-                    )}
-                    {i < steps.length - 1 ? (
-                      <button className="btn btn-primary btn-sm" onClick={() => setActiveStep(i + 1)} style={{ marginLeft: 'auto' }}>Next →</button>
-                    ) : (
-                      <Link to="/register" className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }}>Get Started →</Link>
-                    )}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
-          {/* Mobile steps (linear) */}
+          {/* Mobile steps */}
           <div className="steps-mobile">
-            {steps.map((step, i) => (
-              <div key={step.number} className="step-mobile-item reveal">
-                <div className="step-mobile-left">
-                  <div className="step-mobile-circle" style={{ background: step.color }}>
-                    {step.number}
+            {steps.map((step, i) => {
+              const StepIcon = step.icon
+              return (
+                <div key={step.number} className="step-mobile-item reveal">
+                  <div className="step-mobile-left">
+                    <div className="step-mobile-circle" style={{ background: step.color }}>
+                      {step.number}
+                    </div>
+                    {i < steps.length - 1 && <div className="step-mobile-line" />}
                   </div>
-                  {i < steps.length - 1 && <div className="step-mobile-line" />}
+                  <div className="step-mobile-content">
+                    <div className="step-mobile-icon"><StepIcon size={20} /></div>
+                    <h3>{step.title}</h3>
+                    <p>{step.desc}</p>
+                  </div>
                 </div>
-                <div className="step-mobile-content">
-                  <div className="step-mobile-icon">{step.icon}</div>
-                  <h3>{step.title}</h3>
-                  <p>{step.desc}</p>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* ── Stats Banner ── */}
+      {/* Stats Banner */}
       <section className="stats-section reveal">
         <div className="container">
           <div className="stats-grid">
@@ -378,7 +376,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
+      {/* Testimonials */}
       <section className="testimonials-section">
         <div className="container">
           <div className="section-header reveal">
@@ -405,13 +403,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
+      {/* CTA */}
       <section className="cta-section">
         <div className="container">
           <div className="cta-box reveal">
             <div className="cta-orb cta-orb-1" />
             <div className="cta-orb cta-orb-2" />
-            <div className="cta-badge">🚀 Free · No Credit Card · Instant Access</div>
+            <div className="cta-badge"><Rocket size={13} /> Free · No Credit Card · Instant Access</div>
             <h2>Start Discovering Schemes Today</h2>
             <p>Join thousands of citizens who found the right government support through NeuraScheme AI.</p>
             <div className="cta-actions">
@@ -422,13 +420,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <footer className="landing-footer">
         <div className="container">
           <div className="footer-top">
             <div className="footer-brand-col">
               <div className="footer-brand">
-                <span>🧠</span>
+                <Brain size={20} />
                 <span>NeuraScheme <strong>AI</strong></span>
               </div>
               <p className="footer-tagline">Making Government Schemes Accessible to Every Indian Citizen.</p>
@@ -454,8 +452,8 @@ export default function Landing() {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>© 2025 NeuraScheme AI. All rights reserved.</p>
-            <p>Built with ❤️ for India</p>
+            <p>© 2026 NeuraScheme AI. All rights reserved.</p>
+            <p>Built for India</p>
           </div>
         </div>
       </footer>

@@ -5,6 +5,7 @@ import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
 import SchemeCard from '../../components/cards/SchemeCard'
 import { useAuth } from '../../hooks/useAuth'
+import { User, Search, CheckCircle, Target, FileText, Lightbulb, AlertTriangle, Brain, Frown, Loader2 } from 'lucide-react'
 import api from '../../services/api'
 import './Eligibility.css'
 
@@ -14,16 +15,16 @@ const EDUCATIONS = ['Below 10th','10th','12th','Diploma','Graduate','Post Gradua
 const CATEGORIES = ['General','OBC','SC','ST','EWS']
 
 const AI_STEPS = [
-  { icon: '👤', label: 'Profile Validation', desc: 'Validating and normalizing your profile data' },
-  { icon: '🔍', label: 'Scheme Retrieval', desc: 'Searching 3,397 schemes using semantic AI' },
-  { icon: '✅', label: 'Eligibility Evaluation', desc: 'Scoring each scheme against your profile' },
-  { icon: '🎯', label: 'Recommendation Ranking', desc: 'Ranking schemes by relevance and confidence' },
-  { icon: '💡', label: 'Explanation Generation', desc: 'Generating personalized explanations via Gemini AI' },
+  { icon: User, label: 'Profile Validation', desc: 'Validating and normalizing your profile data' },
+  { icon: Search, label: 'Scheme Retrieval', desc: 'Searching 3,397 schemes using semantic AI' },
+  { icon: CheckCircle, label: 'Eligibility Evaluation', desc: 'Scoring each scheme against your profile' },
+  { icon: Target, label: 'Recommendation Ranking', desc: 'Ranking schemes by relevance and confidence' },
+  { icon: Lightbulb, label: 'Explanation Generation', desc: 'Generating personalized explanations via Gemini AI' },
 ]
 
 export default function Eligibility() {
   const { user } = useAuth()
-  const [step, setStep] = useState(0) // 0=form, 1=loading, 2=results
+  const [step, setStep] = useState(0)
   const [aiStep, setAiStep] = useState(0)
   const [results, setResults] = useState([])
   const [error, setError] = useState('')
@@ -43,17 +44,14 @@ export default function Eligibility() {
     setAiStep(0)
 
     const payload = { ...form }
-    // Convert numeric fields — send null if empty, not empty string
     payload.age = form.age !== '' ? parseInt(form.age) : null
     payload.annual_income = form.annual_income !== '' ? parseFloat(form.annual_income) : null
-    // Convert empty strings to null for optional string fields
     payload.state = form.state || null
     payload.gender = form.gender || null
     payload.occupation = form.occupation || null
     payload.education = form.education || null
     payload.category = form.category || null
 
-    // Animate steps independently — doesn't block API response
     let animating = true
     const animateSteps = async () => {
       for (let i = 0; i < AI_STEPS.length; i++) {
@@ -152,7 +150,7 @@ export default function Eligibility() {
               <div className="elig-section">
                 <h3 className="elig-section-title">Additional Details</h3>
                 <div className="elig-checkboxes">
-                  {[['is_student','👨‍🎓 I am a Student'],['is_farmer','🌾 I am a Farmer'],['is_business_owner','💼 I own a Business'],['has_disability','♿ I have a Disability']].map(([k, label]) => (
+                  {[['is_student','I am a Student'],['is_farmer','I am a Farmer'],['is_business_owner','I own a Business'],['has_disability','I have a Disability']].map(([k, label]) => (
                     <label key={k} className="elig-checkbox">
                       <input type="checkbox" checked={form[k]} onChange={(e) => set(k, e.target.checked)} />
                       {label}
@@ -161,10 +159,14 @@ export default function Eligibility() {
                 </div>
               </div>
 
-              {error && <div className="auth-error">⚠️ {error}</div>}
+              {error && (
+                <div className="auth-error">
+                  <AlertTriangle size={15} /> {error}
+                </div>
+              )}
 
               <button className="btn btn-primary btn-lg elig-submit" onClick={runCheck}>
-                🧠 Run AI Eligibility Check
+                <Brain size={16} /> Run AI Eligibility Check
               </button>
             </div>
           )}
@@ -179,17 +181,20 @@ export default function Eligibility() {
                 </div>
               </div>
               <div className="ai-steps">
-                {AI_STEPS.map((s, i) => (
-                  <div key={s.label} className={`ai-step ${i < aiStep ? 'done' : i === aiStep ? 'active' : 'pending'}`}>
-                    <div className="ai-step-icon">
-                      {i < aiStep ? '✅' : i === aiStep ? <span className="ai-step-spinner" /> : '⏳'}
+                {AI_STEPS.map((s, i) => {
+                  const StepIcon = s.icon
+                  return (
+                    <div key={s.label} className={`ai-step ${i < aiStep ? 'done' : i === aiStep ? 'active' : 'pending'}`}>
+                      <div className="ai-step-icon">
+                        {i < aiStep ? <CheckCircle size={16} /> : i === aiStep ? <span className="ai-step-spinner" /> : <Loader2 size={16} />}
+                      </div>
+                      <div className="ai-step-content">
+                        <div className="ai-step-label"><StepIcon size={14} /> {s.label}</div>
+                        <div className="ai-step-desc">{s.desc}</div>
+                      </div>
                     </div>
-                    <div className="ai-step-content">
-                      <div className="ai-step-label">{s.icon} {s.label}</div>
-                      <div className="ai-step-desc">{s.desc}</div>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -198,14 +203,14 @@ export default function Eligibility() {
             <div>
               <div className="results-header">
                 <div>
-                  <h2>🎯 {results.length} Schemes Found</h2>
+                  <h2><Target size={20} /> {results.length} Schemes Found</h2>
                   <p>Ranked by AI eligibility score and semantic relevance</p>
                 </div>
                 <button className="btn btn-outline" onClick={() => setStep(0)}>← Run Again</button>
               </div>
               {results.length === 0 ? (
                 <div className="empty-state card">
-                  <div className="empty-icon">😕</div>
+                  <div className="empty-icon"><Frown size={40} strokeWidth={1.5} /></div>
                   <h3>No matching schemes found</h3>
                   <p>Try updating your profile with more details for better results.</p>
                 </div>

@@ -4,6 +4,7 @@ import Navbar from '../../components/layout/Navbar'
 import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
 import { useAuth } from '../../hooks/useAuth'
+import { Target, Heart, BarChart2, CheckCircle, Brain, Search, Bot, Bookmark } from 'lucide-react'
 import api from '../../services/api'
 import './Dashboard.css'
 
@@ -78,10 +79,10 @@ export default function Dashboard() {
     : 0
 
   const stats = [
-    { icon: '🎯', label: 'Matched Schemes', value: recommendations.length || '—', color: 'blue' },
-    { icon: '❤️', label: 'Saved', value: savedCount, color: 'red' },
-    { icon: '📊', label: 'Avg Score', value: avgScore ? avgScore + '%' : '—', color: 'green' },
-    { icon: '✅', label: 'Profile', value: completeness + '%', color: 'yellow' },
+    { icon: <Target size={20} />, label: 'Matched Schemes', value: recommendations.length || '—', color: 'blue' },
+    { icon: <Heart size={20} />, label: 'Saved', value: savedCount, color: 'red' },
+    { icon: <BarChart2 size={20} />, label: 'Avg Score', value: avgScore ? avgScore + '%' : '—', color: 'green' },
+    { icon: <CheckCircle size={20} />, label: 'Profile', value: completeness + '%', color: 'yellow' },
   ]
 
   const missingFields = getMissingFields(user)
@@ -97,11 +98,13 @@ export default function Dashboard() {
           {/* Welcome Banner */}
           <div className="dashboard-welcome card">
             <div className="welcome-text">
-              <h1>{greeting}, {user?.name?.split(' ')[0] || 'there'} 👋</h1>
+              <h1>{greeting}, {user?.name?.split(' ')[0] || 'there'}</h1>
               <p>Here's your personalized government scheme overview.</p>
             </div>
             <div className="welcome-actions">
-              <Link to="/eligibility" className="btn btn-primary">🧠 Run AI Check</Link>
+              <Link to="/eligibility" className="btn btn-primary">
+                <Brain size={15} /> Run AI Check
+              </Link>
               <Link to="/explore" className="btn btn-ghost">Explore Schemes</Link>
             </div>
           </div>
@@ -122,7 +125,6 @@ export default function Dashboard() {
             {/* Left column */}
             <div className="dashboard-section">
 
-              {/* Top Matched Schemes — ranked list */}
               <div className="section-title-row">
                 <h2>Top Matched Schemes</h2>
                 <Link to="/eligibility" className="btn btn-outline btn-sm">View All →</Link>
@@ -132,7 +134,7 @@ export default function Dashboard() {
                 <div className="loading-center"><div className="loading-spinner" /></div>
               ) : topSchemes.length === 0 ? (
                 <div className="empty-state card">
-                  <div className="empty-icon">🎯</div>
+                  <div className="empty-icon"><Target size={40} strokeWidth={1.5} /></div>
                   <h3>No recommendations yet</h3>
                   <p>Run the eligibility checker to get AI-powered scheme recommendations.</p>
                   <Link to="/eligibility" className="btn btn-primary" style={{ marginTop: 16 }}>Check Eligibility</Link>
@@ -164,7 +166,6 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Category Breakdown */}
               {recommendations.length > 0 && (
                 <>
                   <div className="section-title-row" style={{ marginTop: 28 }}>
@@ -214,7 +215,7 @@ export default function Dashboard() {
               {/* AI Insights */}
               <div className="ai-insights card">
                 <div className="insights-header">
-                  <span className="insights-icon">🧠</span>
+                  <span className="insights-icon"><Brain size={18} /></span>
                   <h3>AI Insights</h3>
                 </div>
                 <div className="insights-list">
@@ -234,10 +235,10 @@ export default function Dashboard() {
               <div className="quick-links card">
                 <h3>Quick Actions</h3>
                 <div className="quick-links-grid">
-                  <Link to="/explore" className="quick-link">🔍<span>Explore</span></Link>
-                  <Link to="/eligibility" className="quick-link">✅<span>Check</span></Link>
-                  <Link to="/assistant" className="quick-link">🤖<span>AI Chat</span></Link>
-                  <Link to="/saved" className="quick-link">❤️<span>Saved</span></Link>
+                  <Link to="/explore" className="quick-link"><Search size={18} /><span>Explore</span></Link>
+                  <Link to="/eligibility" className="quick-link"><CheckCircle size={18} /><span>Check</span></Link>
+                  <Link to="/assistant" className="quick-link"><Bot size={18} /><span>AI Chat</span></Link>
+                  <Link to="/saved" className="quick-link"><Bookmark size={18} /><span>Saved</span></Link>
                 </div>
               </div>
 

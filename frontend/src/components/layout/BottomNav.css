@@ -7,6 +7,7 @@
   height: 64px;
   background: var(--surface);
   border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 16px rgba(15,45,94,0.06);
   z-index: 100;
   padding: 0 8px;
 }
@@ -22,14 +23,13 @@
   color: var(--text-muted);
   transition: color var(--transition);
   padding: 8px 4px;
+  border-radius: var(--radius-sm);
 }
 
 .bottom-nav-item.active { color: var(--primary); }
+.bottom-nav-item:hover  { color: var(--primary); }
 
 .bottom-nav-icon { font-size: 20px; }
+.bottom-nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
 
-.bottom-nav-label { font-size: 10px; font-weight: 500; }
-
-@media (max-width: 1024px) {
-  .bottom-nav { display: flex; }
-}
+@media (max-width: 1024px) { .bottom-nav { display: flex; } }

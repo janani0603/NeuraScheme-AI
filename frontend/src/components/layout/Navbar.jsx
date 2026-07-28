@@ -1,18 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { useSidebar } from '../../context/SidebarContext'
+import { Brain, Bell, LayoutDashboard, User, Bookmark, LogOut } from 'lucide-react'
+import api from '../../services/api'
 import './Navbar.css'
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
-  const { sidebarOpen, toggleSidebar } = useSidebar()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isLanding = location.pathname === '/'
+  const [unreadCount, setUnreadCount] = useState(0)
+  const pollRef = useRef(null)
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const fetchCount = () =>
+      api.get('/notifications/unread-count')
+        .then(r => setUnreadCount(r.data.unread_count))
+        .catch(() => {})
+    fetchCount()
+    pollRef.current = setInterval(fetchCount, 30000)
+    return () => clearInterval(pollRef.current)
+  }, [isAuthenticated])
 
   const handleLogout = () => {
     logout()
@@ -27,7 +40,7 @@ export default function Navbar() {
     <nav className={`navbar ${isLanding ? 'navbar-landing' : 'navbar-app'}`}>
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand">
-          <div className="brand-icon">🧠</div>
+          <div className="brand-icon"><Brain size={18} /></div>
           <span className="brand-name">NeuraScheme <span>AI</span></span>
         </Link>
 
@@ -39,30 +52,33 @@ export default function Navbar() {
           </ul>
         )}
 
+        {isAuthenticated && !isLanding && (
+          <ul className="navbar-links">
+            <li><Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Dashboard</Link></li>
+            <li><Link to="/explore" className={isActive('/explore') ? 'active' : ''}>Explore</Link></li>
+            <li><Link to="/eligibility" className={isActive('/eligibility') ? 'active' : ''}>Eligibility</Link></li>
+            <li><Link to="/assistant" className={isActive('/assistant') ? 'active' : ''}>AI Assistant</Link></li>
+          </ul>
+        )}
+
         <div className="navbar-actions">
-          {isAuthenticated && !isLanding && (
-            <button
-              className={`sidebar-toggle-btn ${sidebarOpen ? 'open' : ''}`}
-              onClick={toggleSidebar}
-              aria-label="Toggle sidebar"
-            >
-              <span /><span /><span />
-            </button>
-          )}
           {isAuthenticated ? (
             <>
-              <Link to="/notifications" className={`navbar-icon-btn ${isActive('/notifications') ? 'active' : ''}`} title="Notifications">🔔</Link>
+              <Link to="/notifications" className={`navbar-icon-btn notif-btn ${isActive('/notifications') ? 'active' : ''}`} title="Notifications" onClick={() => setUnreadCount(0)}>
+                <Bell size={18} />
+                {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+              </Link>
               <div className="navbar-user" onClick={() => setMenuOpen(!menuOpen)}>
                 <div className="user-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</div>
                 <span className="user-name">{user?.name?.split(' ')[0]}</span>
                 <span className={`chevron ${menuOpen ? 'open' : ''}`}>▾</span>
                 {menuOpen && (
                   <div className="user-dropdown">
-                    <Link to="/dashboard" onClick={() => setMenuOpen(false)}>📊 Dashboard</Link>
-                    <Link to="/profile" onClick={() => setMenuOpen(false)}>👤 Profile</Link>
-                    <Link to="/saved" onClick={() => setMenuOpen(false)}>❤️ Saved Schemes</Link>
+                    <Link to="/dashboard" onClick={() => setMenuOpen(false)}><LayoutDashboard size={14} /> Dashboard</Link>
+                    <Link to="/profile" onClick={() => setMenuOpen(false)}><User size={14} /> Profile</Link>
+                    <Link to="/saved" onClick={() => setMenuOpen(false)}><Bookmark size={14} /> Saved Schemes</Link>
                     <div className="dropdown-divider" />
-                    <button onClick={handleLogout}>🚪 Logout</button>
+                    <button onClick={handleLogout}><LogOut size={14} /> Logout</button>
                   </div>
                 )}
               </div>
@@ -81,7 +97,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <div className="mobile-menu">
           {isLanding && (

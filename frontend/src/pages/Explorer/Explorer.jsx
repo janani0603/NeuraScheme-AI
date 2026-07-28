@@ -4,6 +4,7 @@ import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
 import SchemeCard from '../../components/cards/SchemeCard'
 import { useAuth } from '../../hooks/useAuth'
+import { Search, X } from 'lucide-react'
 import api from '../../services/api'
 import './Explorer.css'
 
@@ -92,7 +93,7 @@ export default function Explorer() {
       <div className="explorer-filters card">
         {/* Search */}
         <div className="search-bar">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><Search size={16} /></span>
           <input
             className="search-input"
             placeholder="Search by name, keyword, benefit..."
@@ -100,7 +101,7 @@ export default function Explorer() {
             onChange={(e) => setSearchInput(e.target.value)}
           />
           {searchInput && (
-            <button className="search-clear" onClick={() => setSearchInput('')}>✕</button>
+            <button className="search-clear" onClick={() => setSearchInput('')}><X size={14} /></button>
           )}
         </div>
 
@@ -133,7 +134,7 @@ export default function Explorer() {
           </select>
 
           {hasFilters && (
-            <button className="btn btn-ghost btn-sm" onClick={clearAll}>✕ Clear All</button>
+            <button className="btn btn-ghost btn-sm" onClick={clearAll}><X size={13} /> Clear All</button>
           )}
         </div>
 
@@ -158,7 +159,7 @@ export default function Explorer() {
             {activeFilters.map(({ key, label }) => (
               <span key={key} className="filter-badge">
                 {label}
-                <button onClick={() => setFilter(key, '')}>✕</button>
+                <button onClick={() => setFilter(key, '')}><X size={11} /></button>
               </span>
             ))}
           </div>
@@ -170,7 +171,7 @@ export default function Explorer() {
         <div className="loading-center"><div className="loading-spinner" /></div>
       ) : schemes.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🔍</div>
+          <div className="empty-icon"><Search size={40} strokeWidth={1.5} /></div>
           <h3>No schemes found</h3>
           <p>Try different keywords or clear the filters.</p>
           {hasFilters && <button className="btn btn-primary btn-sm" onClick={clearAll}>Clear Filters</button>}

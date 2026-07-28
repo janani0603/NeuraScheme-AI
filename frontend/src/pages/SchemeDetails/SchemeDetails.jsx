@@ -4,6 +4,7 @@ import Navbar from '../../components/layout/Navbar'
 import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
 import { useAuth } from '../../hooks/useAuth'
+import { Heart, Share2, Bot, FileText, CheckCircle, Lock, Frown } from 'lucide-react'
 import api from '../../services/api'
 import './SchemeDetails.css'
 
@@ -11,14 +12,12 @@ const TABS = ['Overview', 'Benefits', 'Eligibility', 'Documents', 'How to Apply'
 
 function parseLines(text) {
   if (!text) return []
-  // Split on newlines first, then on '. ' before capital letters
   const byNewline = text.split(/\n+/).map((l) => l.trim()).filter((l) => l.length > 6)
   if (byNewline.length > 1) {
     return byNewline.map((l) => l.replace(/^[\d.)-]+\s*/, '').trim()).filter((l) => l.length > 6)
   }
-  // Fallback: split single paragraph on sentence boundaries
   return text
-    .split(/\.\s+(?=[A-Z])/) 
+    .split(/\.\s+(?=[A-Z])/)
     .map((l) => l.replace(/^[\d.)-]+\s*/, '').trim())
     .filter((l) => l.length > 6)
 }
@@ -47,7 +46,7 @@ function DocList({ text }) {
     <ul className="doc-list">
       {lines.map((d, i) => (
         <li key={i} className="doc-item">
-          <span className="doc-icon">📄</span>
+          <span className="doc-icon"><FileText size={14} /></span>
           <span>{d}</span>
         </li>
       ))}
@@ -113,13 +112,12 @@ export default function SchemeDetails() {
         <div className="loading-center"><div className="loading-spinner" /></div>
       ) : error ? (
         <div className="empty-state">
-          <div className="empty-icon">😕</div>
+          <div className="empty-icon"><Frown size={40} strokeWidth={1.5} /></div>
           <h3>{error}</h3>
           <Link to="/explore" className="btn btn-primary" style={{ marginTop: 16 }}>Back to Explorer</Link>
         </div>
       ) : scheme ? (
         <>
-          {/* Breadcrumb */}
           <div className="breadcrumb">
             <Link to="/explore">Explore</Link>
             <span>›</span>
@@ -135,13 +133,13 @@ export default function SchemeDetails() {
               {isAuthenticated && (
                 <div className="sdh-actions">
                   <button className={`btn btn-sm ${saved ? 'btn-danger' : 'btn-outline'}`} onClick={toggleSave} disabled={saving}>
-                    {saved ? '❤️ Saved' : '🤍 Save'}
+                    <Heart size={14} fill={saved ? 'currentColor' : 'none'} /> {saved ? 'Saved' : 'Save'}
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={handleShare}>
-                    {copyMsg || '🔗 Share'}
+                    <Share2 size={14} /> {copyMsg || 'Share'}
                   </button>
                   <button className="btn btn-primary btn-sm" onClick={handleAskAI}>
-                    🤖 Ask AI
+                    <Bot size={14} /> Ask AI
                   </button>
                 </div>
               )}
@@ -155,7 +153,7 @@ export default function SchemeDetails() {
 
             {!isAuthenticated && (
               <div className="sdh-login-nudge">
-                <span>🔐 <Link to="/login">Sign in</Link> to check your eligibility, save this scheme, and get AI guidance.</span>
+                <Lock size={14} /> <Link to="/login">Sign in</Link> to check your eligibility, save this scheme, and get AI guidance.
               </div>
             )}
           </div>
@@ -175,23 +173,23 @@ export default function SchemeDetails() {
                   {isAuthenticated && (
                     <div className="elig-cta">
                       <p>Want to know if you qualify?</p>
-                      <Link to="/eligibility" className="btn btn-primary btn-sm">✅ Check My Eligibility</Link>
+                      <Link to="/eligibility" className="btn btn-primary btn-sm">
+                        <CheckCircle size={14} /> Check My Eligibility
+                      </Link>
                     </div>
                   )}
                 </div>
               )}
-              {tab === 3 && (
-                <div>
-                  <DocList text={scheme.documents} />
-                </div>
-              )}
+              {tab === 3 && <DocList text={scheme.documents} />}
               {tab === 4 && (
                 <div>
                   <StepList text={scheme.application} />
                   {isAuthenticated && (
                     <div className="elig-cta">
                       <p>Need help with the application process?</p>
-                      <button className="btn btn-primary btn-sm" onClick={handleAskAI}>🤖 Ask AI Assistant</button>
+                      <button className="btn btn-primary btn-sm" onClick={handleAskAI}>
+                        <Bot size={14} /> Ask AI Assistant
+                      </button>
                     </div>
                   )}
                 </div>

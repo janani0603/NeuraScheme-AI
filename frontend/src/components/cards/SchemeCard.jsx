@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { Heart, Lightbulb, Check, X } from 'lucide-react'
 import api from '../../services/api'
 import './SchemeCard.css'
 
@@ -63,7 +64,7 @@ export default function SchemeCard({ scheme, showScore = false, onUnsave }) {
               disabled={saving}
               title={saved ? 'Remove from saved' : 'Save scheme'}
             >
-              {saved ? '❤️' : '🤍'}
+              <Heart size={16} fill={saved ? 'currentColor' : 'none'} />
             </button>
           )}
         </div>
@@ -86,20 +87,19 @@ export default function SchemeCard({ scheme, showScore = false, onUnsave }) {
         </div>
       )}
 
-      {/* Matched / Missing conditions */}
       {scheme.matched_conditions?.length > 0 && (
         <div className="conditions">
           {scheme.matched_conditions.slice(0, 3).map((c) => (
-            <span key={c} className="condition matched">✓ {c}</span>
+            <span key={c} className="condition matched"><Check size={11} /> {c}</span>
           ))}
           {scheme.missing_conditions?.slice(0, 2).map((c) => (
-            <span key={c} className="condition missing">✗ {c}</span>
+            <span key={c} className="condition missing"><X size={11} /> {c}</span>
           ))}
         </div>
       )}
 
       {scheme.explanation && (
-        <p className="scheme-card-explanation">💡 {scheme.explanation}</p>
+        <p className="scheme-card-explanation"><Lightbulb size={13} /> {scheme.explanation}</p>
       )}
 
       <div className="scheme-card-footer">

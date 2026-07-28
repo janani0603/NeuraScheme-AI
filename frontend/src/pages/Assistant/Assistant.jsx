@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import Navbar from '../../components/layout/Navbar'
 import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
+import { Brain, Target, Scale, FileText, Clock, MessageSquare, Pencil, Trash2, Send, Loader2, User } from 'lucide-react'
 import api from '../../services/api'
 import './Assistant.css'
 
@@ -31,14 +32,14 @@ function timeAgo(isoString) {
 }
 
 const AGENT_LABELS = {
-  recommendations: '🎯 Recommendations',
-  comparison: '⚖️ Comparison',
-  documents: '📄 Documents',
-  deadlines: '⏰ Deadlines',
-  general: '💬 General',
+  recommendations: { icon: Target, label: 'Recommendations' },
+  comparison: { icon: Scale, label: 'Comparison' },
+  documents: { icon: FileText, label: 'Documents' },
+  deadlines: { icon: Clock, label: 'Deadlines' },
+  general: { icon: MessageSquare, label: 'General' },
 }
 
-const WELCOME = '👋 Hi! I\'m your NeuraScheme AI Assistant. Ask me anything about government schemes — eligibility, benefits, documents, or how to apply.'
+const WELCOME = "Hi! I'm your NeuraScheme AI Assistant. Ask me anything about government schemes — eligibility, benefits, documents, or how to apply."
 
 export default function Assistant() {
   const location = useLocation()
@@ -47,7 +48,7 @@ export default function Assistant() {
 
   const [messages, setMessages] = useState([
     { role: 'assistant', text: schemeName
-        ? `👋 Hi! I'm your NeuraScheme AI Assistant. I can see you're asking about **${schemeName}**. What would you like to know?`
+        ? `Hi! I'm your NeuraScheme AI Assistant. I can see you're asking about **${schemeName}**. What would you like to know?`
         : WELCOME
     }
   ])
@@ -64,7 +65,6 @@ export default function Assistant() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Load conversation history on mount
   useEffect(() => {
     loadHistory()
   }, [])
@@ -81,7 +81,6 @@ export default function Assistant() {
     }
   }
 
-  // Resume a past conversation
   const openConversation = (conv) => {
     const msgs = [{ role: 'assistant', text: WELCOME }]
     for (const m of conv.messages) {
@@ -125,10 +124,9 @@ export default function Assistant() {
       setActiveConvId(newConvId)
       const agentsUsed = res.data.agents_used || []
       setMessages((m) => [...m, { role: 'assistant', text: res.data.response, agents: agentsUsed }])
-      // Refresh history list to show new/updated conversation
       loadHistory()
     } catch {
-      setMessages((m) => [...m, { role: 'assistant', text: '⚠️ Sorry, I encountered an error. Please try again.' }])
+      setMessages((m) => [...m, { role: 'assistant', text: 'Sorry, I encountered an error. Please try again.' }])
     } finally {
       setLoading(false)
     }
@@ -155,7 +153,7 @@ export default function Assistant() {
         <main className="page-content assistant-page">
 
           <div className="assistant-layout">
-            {/* ── History Panel ── */}
+            {/* History Panel */}
             <div className={`history-panel ${historyOpen ? 'open' : 'closed'}`}>
               <div className="history-panel-header">
                 {historyOpen && <span className="history-panel-title">Chat History</span>}
@@ -171,7 +169,7 @@ export default function Assistant() {
               {historyOpen && (
                 <>
                   <button className="new-chat-btn" onClick={newChat}>
-                    ✏️ New Chat
+                    <Pencil size={14} /> New Chat
                   </button>
 
                   <div className="history-list">
@@ -198,7 +196,9 @@ export default function Assistant() {
                               className="history-delete-btn"
                               onClick={(e) => deleteConversation(e, conv.conversation_id)}
                               title="Delete"
-                            >🗑️</button>
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         )
                       })
@@ -208,7 +208,7 @@ export default function Assistant() {
               )}
             </div>
 
-            {/* ── Chat Area ── */}
+            {/* Chat Area */}
             <div className="chat-area">
               <div className="assistant-header">
                 <div>
@@ -221,26 +221,36 @@ export default function Assistant() {
                 <div className="chat-messages">
                   {messages.map((m, i) => (
                     <div key={i} className={`chat-message ${m.role}`}>
-                      {m.role === 'assistant' && <div className="chat-avatar">🧠</div>}
+                      {m.role === 'assistant' && (
+                        <div className="chat-avatar"><Brain size={16} /></div>
+                      )}
                       {m.role === 'assistant'
                         ? <div className="chat-bubble">
                             {m.agents && m.agents.length > 0 && (
                               <div className="agents-used">
-                                {m.agents.map(a => (
-                                  <span key={a} className="agent-tag">{AGENT_LABELS[a] || a}</span>
-                                ))}
+                                {m.agents.map(a => {
+                                  const ag = AGENT_LABELS[a]
+                                  const AgIcon = ag?.icon || MessageSquare
+                                  return (
+                                    <span key={a} className="agent-tag">
+                                      <AgIcon size={11} /> {ag?.label || a}
+                                    </span>
+                                  )
+                                })}
                               </div>
                             )}
                             <div dangerouslySetInnerHTML={{ __html: renderMarkdown(m.text) }} />
                           </div>
                         : <div className="chat-bubble">{m.text}</div>
                       }
-                      {m.role === 'user' && <div className="chat-avatar user-avatar-chat">👤</div>}
+                      {m.role === 'user' && (
+                        <div className="chat-avatar user-avatar-chat"><User size={16} /></div>
+                      )}
                     </div>
                   ))}
                   {loading && (
                     <div className="chat-message assistant">
-                      <div className="chat-avatar">🧠</div>
+                      <div className="chat-avatar"><Brain size={16} /></div>
                       <div className="chat-bubble typing">
                         <span /><span /><span />
                       </div>
@@ -272,7 +282,7 @@ export default function Assistant() {
                     rows={1}
                   />
                   <button className="chat-send-btn" onClick={send} disabled={!input.trim() || loading}>
-                    {loading ? '⏳' : '➤'}
+                    {loading ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
                   </button>
                 </div>
               </div>

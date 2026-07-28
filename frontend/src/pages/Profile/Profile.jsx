@@ -3,6 +3,7 @@ import Navbar from '../../components/layout/Navbar'
 import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
 import { useAuth } from '../../hooks/useAuth'
+import { CheckCircle, X, Pencil, Save, AlertTriangle } from 'lucide-react'
 import api from '../../services/api'
 import './Profile.css'
 
@@ -62,8 +63,8 @@ export default function Profile() {
             </div>
           </div>
 
-          {success && <div className="profile-success">✅ Profile updated successfully!</div>}
-          {error && <div className="auth-error">⚠️ {error}</div>}
+          {success && <div className="profile-success"><CheckCircle size={15} /> Profile updated successfully!</div>}
+          {error && <div className="auth-error"><AlertTriangle size={15} /> {error}</div>}
 
           <div className="profile-card card">
             <div className="profile-card-header">
@@ -74,7 +75,7 @@ export default function Profile() {
                 <span className="badge badge-blue">{user?.role || 'user'}</span>
               </div>
               <button className="btn btn-outline btn-sm profile-edit-btn" onClick={() => { setEditing(!editing); setSuccess(false) }}>
-                {editing ? '✕ Cancel' : '✏️ Edit Profile'}
+                {editing ? <><X size={13} /> Cancel</> : <><Pencil size={13} /> Edit Profile</>}
               </button>
             </div>
 
@@ -160,7 +161,7 @@ export default function Profile() {
                 </div>
 
                 <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={save} disabled={saving}>
-                  {saving ? 'Saving...' : '💾 Save Changes'}
+                  {saving ? 'Saving...' : <><Save size={14} /> Save Changes</>}
                 </button>
               </div>
             ) : (
@@ -202,7 +203,9 @@ export default function Profile() {
                   </div>
                   <div className="profile-flags">
                     {[['is_student','Student'],['is_farmer','Farmer'],['is_business_owner','Business Owner'],['has_disability','Has Disability']].map(([k, label]) => (
-                      <span key={k} className={`badge ${user?.[k] ? 'badge-green' : 'badge-gray'}`}>{user?.[k] ? '✓' : '✗'} {label}</span>
+                      <span key={k} className={`badge ${user?.[k] ? 'badge-green' : 'badge-gray'}`}>
+                        {user?.[k] ? <CheckCircle size={11} /> : <X size={11} />} {label}
+                      </span>
                     ))}
                   </div>
                 </div>
