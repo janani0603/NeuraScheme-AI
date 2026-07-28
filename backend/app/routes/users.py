@@ -28,6 +28,7 @@ def _serialize(user: dict) -> UserProfileResponse:
         is_farmer=user.get("is_farmer", False),
         is_business_owner=user.get("is_business_owner", False),
         has_disability=user.get("has_disability", False),
+        age=user.get("age"),
         saved_schemes=[str(s) for s in user.get("saved_schemes", [])],
         role=user.get("role", "user"),
         is_active=user.get("is_active", True),

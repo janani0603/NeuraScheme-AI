@@ -20,6 +20,7 @@ def new_user_document(
     is_farmer: bool = False,
     is_business_owner: bool = False,
     has_disability: bool = False,
+    age: Optional[int] = None,
     role: str = "user",
 ) -> dict:
     now = datetime.now(UTC)
@@ -40,6 +41,7 @@ def new_user_document(
         "is_farmer": is_farmer,
         "is_business_owner": is_business_owner,
         "has_disability": has_disability,
+        "age": age,
         "saved_schemes": [],
         "role": role,
         "is_active": True,

@@ -70,6 +70,7 @@ async def run_recommendation_pipeline(profile: dict, user_id: str) -> dict:
     Run the full LangGraph recommendation pipeline.
     Saves results to MongoDB and returns formatted output.
     """
+    logger.info(f"Pipeline starting for user {user_id}")
     initial_state: AgentState = {
         "user_id": user_id,
         "profile": profile,
@@ -84,7 +85,9 @@ async def run_recommendation_pipeline(profile: dict, user_id: str) -> dict:
     }
 
     graph = get_graph()
+    logger.info("Pipeline: invoking graph")
     final_state = await graph.ainvoke(initial_state)
+    logger.info(f"Pipeline: graph complete, ranked={len(final_state.get('ranked_schemes', []))}")
 
     ranked = final_state.get("ranked_schemes", [])
     explanations = final_state.get("explanations", {})

@@ -23,13 +23,14 @@ async def list_schemes(
     level: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     tag: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     sort_by: str = Query("scheme_name"),
     sort_order: str = Query("asc"),
 ):
     return await get_schemes(
-        keyword=keyword, level=level, category=category, tag=tag,
+        keyword=keyword, level=level, category=category, tag=tag, state=state,
         page=page, page_size=page_size, sort_by=sort_by, sort_order=sort_order,
     )
 

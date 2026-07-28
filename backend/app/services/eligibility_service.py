@@ -4,42 +4,54 @@ from typing import Optional
 # ── Occupation → Tag/Category keyword mapping ─────────────────────────────────
 
 OCCUPATION_TAG_MAP = {
-    "student":      ["student", "scholarship", "education", "school", "fellowship"],
-    "farmer":       ["farmer", "agriculture", "farming", "crop", "irrigation", "kisan"],
-    "entrepreneur": ["entrepreneurship", "entrepreneur", "startup", "business", "msme", "msmes"],
-    "business":     ["business", "entrepreneurship", "msme", "msmes", "loan"],
-    "labour":       ["labour", "labor", "worker", "construction worker", "building worker"],
-    "teacher":      ["education", "teacher", "training", "school"],
-    "doctor":       ["health", "medical", "wellness", "doctor"],
-    "engineer":     ["skills", "employment", "technology", "it"],
-    "unemployed":   ["employment", "skills", "training", "loan"],
-    "self-employed":["self employed", "business", "msme", "loan"],
-    "retired":      ["senior citizen", "pension", "welfare"],
-    "homemaker":    ["women", "empowerment", "welfare", "child"],
+    "student":           ["student", "scholarship", "education", "school", "fellowship"],
+    "farmer":            ["farmer", "agriculture", "farming", "crop", "irrigation", "kisan"],
+    "entrepreneur":      ["entrepreneurship", "entrepreneur", "startup", "business", "msme", "msmes"],
+    "business owner":    ["business", "entrepreneurship", "msme", "msmes", "loan", "startup"],
+    "business":          ["business", "entrepreneurship", "msme", "msmes", "loan"],
+    "labour":            ["labour", "labor", "worker", "construction worker", "building worker"],
+    "teacher":           ["education", "teacher", "training", "school"],
+    "doctor":            ["health", "medical", "wellness", "doctor"],
+    "engineer":          ["skills", "employment", "technology", "it"],
+    "government employee": ["government", "employee", "service", "pension", "welfare"],
+    "private employee":  ["employee", "worker", "labour", "skills", "employment"],
+    "unemployed":        ["employment", "skills", "training", "loan", "unemployed"],
+    "self employed":     ["self employed", "self-employed", "business", "msme", "loan"],
+    "self-employed":     ["self employed", "self-employed", "business", "msme", "loan"],
+    "retired":           ["senior citizen", "pension", "welfare", "retired"],
+    "homemaker":         ["women", "empowerment", "welfare", "child"],
+    "other":             [],
 }
 
 OCCUPATION_CATEGORY_MAP = {
-    "student":      ["education & learning"],
-    "farmer":       ["agriculture", "rural & environment"],
-    "entrepreneur": ["business & entrepreneurship"],
-    "business":     ["business & entrepreneurship", "banking"],
-    "labour":       ["social welfare & empowerment", "skills & employment"],
-    "teacher":      ["education & learning"],
-    "doctor":       ["health & wellness"],
-    "engineer":     ["skills & employment", "it & communications"],
-    "unemployed":   ["skills & employment"],
-    "self-employed":["business & entrepreneurship"],
-    "retired":      ["social welfare & empowerment"],
-    "homemaker":    ["women and child", "social welfare & empowerment"],
+    "student":           ["education & learning"],
+    "farmer":            ["agriculture", "rural & environment"],
+    "entrepreneur":      ["business & entrepreneurship"],
+    "business owner":    ["business & entrepreneurship", "banking"],
+    "business":          ["business & entrepreneurship", "banking"],
+    "labour":            ["social welfare & empowerment", "skills & employment"],
+    "teacher":           ["education & learning"],
+    "doctor":            ["health & wellness"],
+    "engineer":          ["skills & employment", "it & communications"],
+    "government employee": ["social welfare & empowerment"],
+    "private employee":  ["skills & employment"],
+    "unemployed":        ["skills & employment"],
+    "self employed":     ["business & entrepreneurship"],
+    "self-employed":     ["business & entrepreneurship"],
+    "retired":           ["social welfare & empowerment"],
+    "homemaker":         ["women and child", "social welfare & empowerment"],
+    "other":             [],
 }
 
 EDUCATION_TAG_MAP = {
+    "below 10th":   ["school", "student"],
     "10th":         ["school", "student"],
     "12th":         ["school", "student", "scholarship"],
     "diploma":      ["skills", "training", "student"],
     "graduate":     ["student", "scholarship", "education", "fellowship"],
     "post graduate":["research", "fellowship", "scholarship"],
     "phd":          ["research", "fellowship", "science"],
+    "other":        [],
 }
 
 CATEGORY_TAG_MAP = {
@@ -61,7 +73,13 @@ def _profile_completeness(profile: dict) -> float:
         "state", "gender", "occupation", "education",
         "annual_income", "category", "age",
     ]
-    filled = sum(1 for f in fields if profile.get(f))
+    def _is_filled(f, v):
+        if v is None or v == "":
+            return False
+        if f == "age" and v == 0:
+            return False
+        return True
+    filled = sum(1 for f in fields if _is_filled(f, profile.get(f)))
     return round(filled / len(fields), 2)
 
 
@@ -106,9 +124,11 @@ def score_scheme(scheme: dict, profile: dict) -> dict:
     occ_tags = []
     occ_cats = []
     for key in OCCUPATION_TAG_MAP:
-        if key in occupation or occupation in key:
-            occ_tags = OCCUPATION_TAG_MAP[key]
-            occ_cats = OCCUPATION_CATEGORY_MAP.get(key, [])
+        key_norm = key.replace("-", " ")
+        occ_norm = occupation.replace("-", " ")
+        if key_norm == occ_norm or key_norm in occ_norm or occ_norm in key_norm:
+            occ_tags = list(OCCUPATION_TAG_MAP[key])
+            occ_cats = list(OCCUPATION_CATEGORY_MAP.get(key, []))
             break
 
     # Also handle boolean flags
@@ -193,7 +213,33 @@ def score_scheme(scheme: dict, profile: dict) -> dict:
     else:
         scores["education"] = 0.5
 
-    # ── 6. Tag Match (10%) ────────────────────────────────────────────────────
+    # ── 6. Age Match (10%) ─────────────────────────────────────────────────────
+    age = profile.get("age")
+    if age is not None:
+        age = int(age)
+        age_keywords = ["age", "years", "yr", "below", "above", "between", "minimum age", "maximum age"]
+        if _contains_any(combined_text, age_keywords):
+            # Senior citizen schemes
+            if age >= 60 and _contains_any(combined_text, ["senior citizen", "elderly", "old age", "pension"]):
+                matched.append("Age match: senior citizen scheme")
+                scores["age"] = 1.0
+            # Youth/student schemes
+            elif age <= 35 and _contains_any(combined_text, ["youth", "young", "student", "18", "25", "30", "35"]):
+                matched.append("Age match: youth/student scheme")
+                scores["age"] = 1.0
+            # Child schemes
+            elif age <= 18 and _contains_any(combined_text, ["child", "minor", "girl child", "boy"]):
+                matched.append("Age match: child scheme")
+                scores["age"] = 1.0
+            else:
+                scores["age"] = 0.5
+        else:
+            matched.append("No strict age restriction mentioned")
+            scores["age"] = 0.8
+    else:
+        scores["age"] = 0.5
+
+    # ── 7. Tag Match (10%) ────────────────────────────────────────────────────
     tag_score = 0.0
     tag_hits = 0
 
@@ -216,15 +262,16 @@ def score_scheme(scheme: dict, profile: dict) -> dict:
 
     # ── Weighted Eligibility Score ────────────────────────────────────────────
     weights = {
-        "state":      0.25,
+        "state":      0.22,
         "occupation": 0.20,
-        "income":     0.20,
+        "income":     0.18,
         "category":   0.15,
         "education":  0.10,
-        "tags":       0.10,
+        "age":        0.08,
+        "tags":       0.07,
     }
 
-    eligibility_score = sum(scores[k] * weights[k] for k in weights)
+    eligibility_score = sum(scores.get(k, 0.5) * weights[k] for k in weights)
     eligibility_score = round(eligibility_score * 100, 1)
 
     # ── Confidence Score ──────────────────────────────────────────────────────

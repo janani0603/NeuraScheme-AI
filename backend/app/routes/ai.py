@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
@@ -42,7 +43,15 @@ async def ai_recommendations(
     user_id = str(current_user["_id"])
 
     try:
-        result = await run_recommendation_pipeline(profile, user_id)
+        result = await asyncio.wait_for(
+            run_recommendation_pipeline(profile, user_id),
+            timeout=80.0
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="AI pipeline timed out. Please try again.",
+        )
     except Exception as e:
         logger.error(f"AI recommendation pipeline error for user {user_id}: {e}")
         raise HTTPException(
@@ -81,7 +90,7 @@ async def ai_recommendations_from_profile(
         "is_farmer": current_user.get("is_farmer", False),
         "is_business_owner": current_user.get("is_business_owner", False),
         "has_disability": current_user.get("has_disability", False),
-        "age": None,
+        "age": current_user.get("age"),
     }
     user_id = str(current_user["_id"])
 

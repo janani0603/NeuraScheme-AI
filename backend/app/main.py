@@ -1,9 +1,15 @@
 import sys
 import io
+import logging
 
 # Ensure stdout supports Unicode on Windows terminals
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+)
 
 from fastapi import FastAPI
 import asyncio

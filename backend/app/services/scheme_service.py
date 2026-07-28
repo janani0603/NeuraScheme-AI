@@ -26,31 +26,41 @@ async def get_schemes(
     level: Optional[str],
     category: Optional[str],
     tag: Optional[str],
+    state: Optional[str],
     page: int,
     page_size: int,
     sort_by: str,
     sort_order: str,
 ) -> dict:
-    query = {}
+    conditions = []
 
-    # Keyword search — use $regex instead of $text to avoid index conflicts
     if keyword:
-        query["$or"] = [
+        conditions.append({"$or": [
             {"scheme_name": {"$regex": keyword, "$options": "i"}},
             {"details": {"$regex": keyword, "$options": "i"}},
             {"eligibility": {"$regex": keyword, "$options": "i"}},
             {"benefits": {"$regex": keyword, "$options": "i"}},
-        ]
+            {"tags": {"$regex": keyword, "$options": "i"}},
+        ]})
 
-    # Exact filters
     if level:
-        query["level"] = {"$regex": f"^{level}$", "$options": "i"}
+        conditions.append({"level": {"$regex": f"^{level}$", "$options": "i"}})
 
     if category:
-        query["schemeCategory"] = {"$regex": category, "$options": "i"}
+        conditions.append({"schemeCategory": {"$regex": category, "$options": "i"}})
 
     if tag:
-        query["tags"] = {"$regex": tag, "$options": "i"}
+        conditions.append({"tags": {"$regex": tag, "$options": "i"}})
+
+    if state:
+        conditions.append({"$or": [
+            {"level": {"$regex": "^central$", "$options": "i"}},
+            {"eligibility": {"$regex": state, "$options": "i"}},
+            {"details": {"$regex": state, "$options": "i"}},
+            {"tags": {"$regex": state, "$options": "i"}},
+        ]})
+
+    query = {"$and": conditions} if conditions else {}
 
     sort_direction = 1 if sort_order == "asc" else -1
     sort_spec = [(sort_by, sort_direction)]
@@ -110,4 +120,9 @@ async def get_tags() -> list:
 
 async def get_levels() -> list:
     results = await db["schemes"].distinct("level")
+    return sorted([r for r in results if r])
+
+
+async def get_states() -> list:
+    results = await db["schemes"].distinct("state")
     return sorted([r for r in results if r])

@@ -51,7 +51,7 @@ def chroma_query(query_vector: list, n_results: int = 100, where: Optional[dict]
         "n_results": n_results,
         "include": ["metadatas", "documents", "distances"],
     }
-    if where:
+    if where is not None:
         kwargs["where"] = where
 
     try:

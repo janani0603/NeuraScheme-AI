@@ -10,7 +10,7 @@ import './Eligibility.css'
 
 const STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu & Kashmir','Ladakh','Puducherry']
 const OCCUPATIONS = ['Student','Farmer','Government Employee','Private Employee','Self Employed','Business Owner','Unemployed','Homemaker','Retired','Other']
-const EDUCATIONS = ['Below 10th','10th Pass','12th Pass','Diploma','Graduate','Post Graduate','PhD','Other']
+const EDUCATIONS = ['Below 10th','10th','12th','Diploma','Graduate','Post Graduate','PhD','Other']
 const CATEGORIES = ['General','OBC','SC','ST','EWS']
 
 const AI_STEPS = [
@@ -43,28 +43,37 @@ export default function Eligibility() {
     setAiStep(0)
 
     const payload = { ...form }
-    if (payload.annual_income) payload.annual_income = parseFloat(payload.annual_income)
-    if (payload.age) payload.age = parseInt(payload.age)
+    // Convert numeric fields — send null if empty, not empty string
+    payload.age = form.age !== '' ? parseInt(form.age) : null
+    payload.annual_income = form.annual_income !== '' ? parseFloat(form.annual_income) : null
+    // Convert empty strings to null for optional string fields
+    payload.state = form.state || null
+    payload.gender = form.gender || null
+    payload.occupation = form.occupation || null
+    payload.education = form.education || null
+    payload.category = form.category || null
 
+    // Animate steps independently — doesn't block API response
+    let animating = true
     const animateSteps = async () => {
       for (let i = 0; i < AI_STEPS.length; i++) {
+        if (!animating) break
         await new Promise((r) => setTimeout(r, 900))
         setAiStep(i + 1)
       }
     }
-
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out. The AI is taking too long. Please try again.')), 60000)
-    )
+    animateSteps()
 
     try {
-      const [, res] = await Promise.all([
-        animateSteps(),
-        Promise.race([api.post('/ai/recommendations', payload), timeout])
+      const res = await Promise.race([
+        api.post('/ai/recommendations', payload),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please try again.')), 90000))
       ])
+      animating = false
       setResults(res.data.recommendations || [])
       setStep(2)
     } catch (err) {
+      animating = false
       setError(err.response?.data?.detail || err.message || 'Something went wrong. Please try again.')
       setStep(0)
     }

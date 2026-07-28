@@ -79,6 +79,7 @@ class UserProfileResponse(BaseModel):
     is_farmer: bool = False
     is_business_owner: bool = False
     has_disability: bool = False
+    age: Optional[int] = None
     saved_schemes: List[str] = []
     role: str
     is_active: bool
@@ -103,3 +104,4 @@ class UpdateProfileRequest(BaseModel):
     is_farmer: Optional[bool] = None
     is_business_owner: Optional[bool] = None
     has_disability: Optional[bool] = None
+    age: Optional[int] = None

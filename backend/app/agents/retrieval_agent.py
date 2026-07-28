@@ -1,5 +1,5 @@
+import asyncio
 import logging
-from typing import Optional
 from app.agents.profile_agent import AgentState
 from app.agents.embedding_model import embed_text
 from app.agents.chroma_client import chroma_query, chroma_count
@@ -11,10 +11,22 @@ VECTOR_CANDIDATES = 100
 FALLBACK_CANDIDATES = 150
 
 
+OCCUPATION_KEYWORD_MAP = {
+    "business owner": "entrepreneur business msme startup",
+    "government employee": "government employee service",
+    "private employee": "employee worker skills employment",
+    "self employed": "self employed business msme",
+    "homemaker": "women empowerment welfare",
+    "retired": "senior citizen pension welfare",
+    "unemployed": "employment skills training",
+}
+
+
 def _build_query_text(profile: dict) -> str:
     parts = []
-    if profile.get("occupation"):
-        parts.append(profile["occupation"])
+    occupation = (profile.get("occupation") or "").lower().strip()
+    if occupation:
+        parts.append(OCCUPATION_KEYWORD_MAP.get(occupation, occupation))
     if profile.get("education"):
         parts.append(profile["education"])
     if profile.get("state"):
@@ -34,102 +46,109 @@ def _build_query_text(profile: dict) -> str:
     return " ".join(parts) if parts else "government welfare scheme"
 
 
-def _build_chroma_filter(profile: dict) -> Optional[dict]:
-    """
-    Build a ChromaDB metadata pre-filter to narrow candidates before vector search.
-    Only filters on level (Central always included).
-    Returns None if no useful filter can be built.
-    """
-    state = (profile.get("state") or "").strip().lower()
-    if not state:
-        return None
-
-    # Include Central schemes always + state-specific schemes
-    # ChromaDB $or filter syntax
-    return {
-        "$or": [
-            {"level": {"$eq": "Central"}},
-            {"level": {"$eq": "State"}},
-        ]
-    }
-
-
 async def retrieval_agent(state: AgentState) -> AgentState:
-    """
-    Retrieves candidate schemes using ChromaDB semantic search.
-    Falls back to MongoDB text search if ChromaDB is empty or unavailable.
-    """
     if not state.get("profile_valid"):
+        logger.warning("Retrieval agent: profile invalid, skipping")
         return {**state, "candidates": []}
 
     profile = state["profile"]
     query_text = _build_query_text(profile)
+    logger.info(f"Retrieval agent: query='{query_text[:80]}'")
 
     # ── Step 1: ChromaDB semantic search ──────────────────────────────────────
     try:
-        if chroma_count() > 0:
-            query_vector = embed_text(query_text)
-            where_filter = _build_chroma_filter(profile)
-
-            chroma_hits = chroma_query(
-                query_vector=query_vector,
-                n_results=VECTOR_CANDIDATES,
-                where=where_filter,
+        loop = asyncio.get_event_loop()
+        count = await asyncio.wait_for(
+            loop.run_in_executor(None, chroma_count), timeout=5.0
+        )
+        logger.info(f"Retrieval agent: ChromaDB count={count}")
+        if count > 0:
+            query_vector = await asyncio.wait_for(
+                loop.run_in_executor(None, embed_text, query_text), timeout=20.0
             )
-
+            chroma_hits = await asyncio.wait_for(
+                loop.run_in_executor(None, chroma_query, query_vector, VECTOR_CANDIDATES, None),
+                timeout=10.0
+            )
             if chroma_hits:
-                # Fetch full scheme documents from MongoDB by slug
                 slugs = [h["slug"] for h in chroma_hits]
                 slug_to_score = {h["slug"]: h["vector_score"] for h in chroma_hits}
-
                 cursor = db["schemes"].find({"slug": {"$in": slugs}})
                 docs = await cursor.to_list(length=VECTOR_CANDIDATES)
-
-                # Attach vector_score to each document
                 for doc in docs:
                     doc["vector_score"] = slug_to_score.get(doc.get("slug", ""), 0.0)
-
-                # Preserve ChromaDB ranking order
                 slug_order = {slug: i for i, slug in enumerate(slugs)}
                 docs.sort(key=lambda d: slug_order.get(d.get("slug", ""), 999))
-
                 logger.info(f"ChromaDB returned {len(docs)} candidates")
                 return {**state, "candidates": docs}
-
+    except asyncio.TimeoutError:
+        logger.warning("Retrieval agent: ChromaDB timed out, falling back to MongoDB")
     except Exception as e:
-        logger.warning(f"ChromaDB search failed, falling back to MongoDB text search: {e}")
+        logger.warning(f"Retrieval agent: ChromaDB failed ({e}), falling back to MongoDB")
 
-    # ── Step 2: MongoDB text search fallback ──────────────────────────────────
+    # ── Step 2: MongoDB fallback ───────────────────────────────────────────────
     candidates = await _fallback_search(profile)
     return {**state, "candidates": candidates}
 
 
 async def _fallback_search(profile: dict) -> list:
-    """MongoDB regex/text search fallback when ChromaDB is unavailable."""
-    query = {}
+    """MongoDB fallback when ChromaDB is unavailable."""
+    conditions = []
     keywords = []
+    occupation = (profile.get("occupation") or "").lower().strip()
 
-    if profile.get("is_student"):
+    if profile.get("is_student") or occupation == "student":
         keywords += ["student", "scholarship"]
-    if profile.get("is_farmer"):
+    if profile.get("is_farmer") or occupation == "farmer":
         keywords += ["farmer", "agriculture"]
-    if profile.get("is_business_owner"):
-        keywords += ["entrepreneur", "msme"]
-    if profile.get("occupation"):
-        keywords.append(profile["occupation"])
+    if profile.get("is_business_owner") or occupation in ("business owner", "entrepreneur"):
+        keywords += ["entrepreneur", "msme", "business"]
+    if occupation == "government employee":
+        keywords += ["government", "employee", "service"]
+    if occupation == "private employee":
+        keywords += ["employee", "worker", "labour"]
+    if occupation in ("self employed", "self-employed"):
+        keywords += ["self employed", "msme", "business"]
+    if occupation == "unemployed":
+        keywords += ["employment", "skills", "training"]
+    if occupation == "homemaker":
+        keywords += ["women", "empowerment", "welfare"]
+    if occupation == "retired":
+        keywords += ["senior citizen", "pension"]
+    if occupation and not keywords:
+        keywords.append(occupation)
 
     if keywords:
         search_str = "|".join(keywords)
-        query["$or"] = [
+        conditions.append({"$or": [
             {"scheme_name": {"$regex": search_str, "$options": "i"}},
             {"eligibility": {"$regex": search_str, "$options": "i"}},
             {"tags": {"$regex": search_str, "$options": "i"}},
-        ]
+        ]})
 
+    state = (profile.get("state") or "").strip()
+    if state:
+        conditions.append({"$or": [
+            {"level": {"$regex": "^central$", "$options": "i"}},
+            {"eligibility": {"$regex": state, "$options": "i"}},
+            {"details": {"$regex": state, "$options": "i"}},
+        ]})
+
+    category = (profile.get("category") or "").strip()
+    if category and category.lower() != "general":
+        conditions.append({"$or": [
+            {"eligibility": {"$regex": category, "$options": "i"}},
+            {"tags": {"$regex": category, "$options": "i"}},
+        ]})
+
+    query = {"$and": conditions} if len(conditions) > 1 else conditions[0] if conditions else {}
+
+    logger.info(f"MongoDB fallback: {len(conditions)} conditions")
     cursor = db["schemes"].find(query).limit(FALLBACK_CANDIDATES)
     candidates = await cursor.to_list(length=FALLBACK_CANDIDATES)
 
     if not candidates:
+        logger.warning("MongoDB fallback: no results with filters, fetching all")
         cursor = db["schemes"].find({}).limit(FALLBACK_CANDIDATES)
         candidates = await cursor.to_list(length=FALLBACK_CANDIDATES)
 
