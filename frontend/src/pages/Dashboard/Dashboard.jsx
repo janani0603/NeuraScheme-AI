@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import Navbar from '../../components/layout/Navbar'
 import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
-import SchemeCard from '../../components/cards/SchemeCard'
 import { useAuth } from '../../hooks/useAuth'
 import api from '../../services/api'
 import './Dashboard.css'
@@ -30,6 +29,32 @@ function AnimatedStat({ value }) {
   return <div className="stat-value" ref={ref}>{value}</div>
 }
 
+function ProfileRing({ completeness }) {
+  const r = 36
+  const circ = 2 * Math.PI * r
+  const offset = circ - (completeness / 100) * circ
+  const color = completeness >= 80 ? '#10B981' : completeness >= 50 ? '#F59E0B' : '#00C9B8'
+  return (
+    <div className="profile-ring-wrap">
+      <svg width="88" height="88" viewBox="0 0 88 88">
+        <circle cx="44" cy="44" r={r} fill="none" stroke="var(--border)" strokeWidth="6" />
+        <circle
+          cx="44" cy="44" r={r} fill="none"
+          stroke={color} strokeWidth="6"
+          strokeDasharray={circ} strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform="rotate(-90 44 44)"
+          style={{ transition: 'stroke-dashoffset 1s ease' }}
+        />
+      </svg>
+      <div className="profile-ring-label">
+        <span className="profile-ring-pct" style={{ color }}>{completeness}%</span>
+        <span className="profile-ring-sub">complete</span>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
   const [recommendations, setRecommendations] = useState([])
@@ -46,14 +71,20 @@ export default function Dashboard() {
   }, [])
 
   const completeness = getCompleteness(user)
+  const savedCount = user?.saved_schemes?.length || 0
+  const topSchemes = recommendations.slice(0, 5)
+  const avgScore = recommendations.length
+    ? Math.round(recommendations.slice(0, 10).reduce((a, r) => a + (r.eligibility_score || 0), 0) / Math.min(recommendations.length, 10))
+    : 0
 
   const stats = [
-    { icon: '🎯', label: 'Eligible Schemes', value: recommendations.length || '—', color: 'blue' },
-    { icon: '❤️', label: 'Saved Schemes', value: user?.saved_schemes?.length || 0, color: 'red' },
-    { icon: '✅', label: 'Profile Complete', value: completeness + '%', color: 'green' },
-    { icon: '🔔', label: 'Notifications', value: '0', color: 'yellow' },
+    { icon: '🎯', label: 'Matched Schemes', value: recommendations.length || '—', color: 'blue' },
+    { icon: '❤️', label: 'Saved', value: savedCount, color: 'red' },
+    { icon: '📊', label: 'Avg Score', value: avgScore ? avgScore + '%' : '—', color: 'green' },
+    { icon: '✅', label: 'Profile', value: completeness + '%', color: 'yellow' },
   ]
 
+  const missingFields = getMissingFields(user)
   const aiInsights = getInsights(user, recommendations)
 
   return (
@@ -67,7 +98,7 @@ export default function Dashboard() {
           <div className="dashboard-welcome card">
             <div className="welcome-text">
               <h1>{greeting}, {user?.name?.split(' ')[0] || 'there'} 👋</h1>
-              <p>Here's your personalized government scheme dashboard.</p>
+              <p>Here's your personalized government scheme overview.</p>
             </div>
             <div className="welcome-actions">
               <Link to="/eligibility" className="btn btn-primary">🧠 Run AI Check</Link>
@@ -86,31 +117,20 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Profile nudge */}
-          {completeness < 100 && (
-            <div className="profile-nudge card">
-              <div className="nudge-content">
-                <span className="nudge-icon">📝</span>
-                <div>
-                  <strong>Complete your profile ({completeness}% done)</strong>
-                  <p>A complete profile gives you more accurate AI recommendations.</p>
-                </div>
-              </div>
-              <Link to="/profile" className="btn btn-primary btn-sm">Complete Profile</Link>
-            </div>
-          )}
-
           <div className="dashboard-two-col">
-            {/* Recommendations */}
+
+            {/* Left column */}
             <div className="dashboard-section">
+
+              {/* Top Matched Schemes — ranked list */}
               <div className="section-title-row">
-                <h2>Your Recommendations</h2>
-                <Link to="/eligibility" className="btn btn-outline btn-sm">↻ Refresh</Link>
+                <h2>Top Matched Schemes</h2>
+                <Link to="/eligibility" className="btn btn-outline btn-sm">View All →</Link>
               </div>
 
               {loading ? (
                 <div className="loading-center"><div className="loading-spinner" /></div>
-              ) : recommendations.length === 0 ? (
+              ) : topSchemes.length === 0 ? (
                 <div className="empty-state card">
                   <div className="empty-icon">🎯</div>
                   <h3>No recommendations yet</h3>
@@ -118,16 +138,78 @@ export default function Dashboard() {
                   <Link to="/eligibility" className="btn btn-primary" style={{ marginTop: 16 }}>Check Eligibility</Link>
                 </div>
               ) : (
-                <div className="schemes-grid">
-                  {recommendations.slice(0, 6).map((r) => (
-                    <SchemeCard key={r._id || r.slug} scheme={r} showScore />
-                  ))}
+                <div className="ranked-list card">
+                  {topSchemes.map((r, i) => {
+                    const score = r.eligibility_score || 0
+                    const scoreClass = score >= 75 ? 'score-high' : score >= 50 ? 'score-medium' : 'score-low'
+                    return (
+                      <Link to={`/schemes/${r.slug}`} key={r.slug} className="ranked-item">
+                        <div className="ranked-num">{i + 1}</div>
+                        <div className="ranked-info">
+                          <div className="ranked-name">{r.scheme_name}</div>
+                          <div className="ranked-meta">
+                            <span className={`badge ${r.level === 'Central' ? 'badge-blue' : 'badge-green'}`}>{r.level}</span>
+                            {r.schemeCategory?.[0] && <span className="badge badge-gray">{r.schemeCategory[0]}</span>}
+                          </div>
+                          <div className="ranked-bar">
+                            <div className="score-bar">
+                              <div className={`score-bar-fill ${scoreClass}`} style={{ width: `${score}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`ranked-score ${scoreClass}`}>{Math.round(score)}%</div>
+                      </Link>
+                    )
+                  })}
                 </div>
+              )}
+
+              {/* Category Breakdown */}
+              {recommendations.length > 0 && (
+                <>
+                  <div className="section-title-row" style={{ marginTop: 28 }}>
+                    <h2>Scheme Categories</h2>
+                  </div>
+                  <div className="category-breakdown card">
+                    {getCategoryBreakdown(recommendations).map(({ cat, count, pct }) => (
+                      <div key={cat} className="cat-row">
+                        <div className="cat-label">{cat}</div>
+                        <div className="cat-bar-wrap">
+                          <div className="cat-bar">
+                            <div className="cat-bar-fill" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                        <div className="cat-count">{count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
             {/* Right column */}
             <div className="dashboard-right">
+
+              {/* Profile Completeness */}
+              <div className="profile-widget card">
+                <div className="profile-widget-header">
+                  <div>
+                    <h3>Profile Strength</h3>
+                    <p>{completeness < 100 ? `${missingFields.length} fields missing` : 'Profile complete!'}</p>
+                  </div>
+                  <ProfileRing completeness={completeness} />
+                </div>
+                {missingFields.length > 0 && (
+                  <div className="missing-fields">
+                    {missingFields.map((f) => (
+                      <span key={f} className="missing-tag">+ {f}</span>
+                    ))}
+                  </div>
+                )}
+                <Link to="/profile" className="btn btn-primary btn-sm" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}>
+                  {completeness < 100 ? 'Complete Profile' : 'View Profile'}
+                </Link>
+              </div>
 
               {/* AI Insights */}
               <div className="ai-insights card">
@@ -148,19 +230,7 @@ export default function Dashboard() {
                 </Link>
               </div>
 
-              {/* Notifications Panel */}
-              <div className="notif-panel card">
-                <div className="insights-header">
-                  <span className="insights-icon">🔔</span>
-                  <h3>Notifications</h3>
-                </div>
-                <div className="notif-empty">
-                  <p>No new notifications</p>
-                  <span>You'll be notified about deadlines and new schemes here.</span>
-                </div>
-              </div>
-
-              {/* Quick Links */}
+              {/* Quick Actions */}
               <div className="quick-links card">
                 <h3>Quick Actions</h3>
                 <div className="quick-links-grid">
@@ -188,19 +258,35 @@ function getCompleteness(user) {
   return Math.round((filled / fields.length) * 100)
 }
 
+function getMissingFields(user) {
+  if (!user) return []
+  const fields = { state: 'State', gender: 'Gender', occupation: 'Occupation', education: 'Education', annual_income: 'Income', category: 'Category', date_of_birth: 'Date of Birth' }
+  return Object.entries(fields).filter(([k]) => !user[k]).map(([, v]) => v)
+}
+
+function getCategoryBreakdown(recommendations) {
+  const map = {}
+  recommendations.forEach((r) => {
+    const cat = r.schemeCategory?.[0] || 'Other'
+    map[cat] = (map[cat] || 0) + 1
+  })
+  const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  const max = sorted[0]?.[1] || 1
+  return sorted.map(([cat, count]) => ({ cat, count, pct: Math.round((count / max) * 100) }))
+}
+
 function getInsights(user, recommendations) {
   const insights = []
   if (!user) return ['Complete your profile to get personalized insights.']
   if (recommendations.length > 0) {
-    insights.push(`Based on your profile, ${recommendations.length} schemes match your eligibility.`)
+    insights.push(`${recommendations.length} schemes matched your profile.`)
     const topScore = Math.max(...recommendations.map((r) => r.eligibility_score || 0))
-    if (topScore > 0) insights.push(`Your top match has an eligibility score of ${Math.round(topScore)}%.`)
+    if (topScore > 0) insights.push(`Your top match scores ${Math.round(topScore)}% eligibility.`)
   } else {
     insights.push('Run the eligibility checker to discover schemes tailored for you.')
   }
-  if (user.state) insights.push(`Showing schemes available in ${user.state} and Central schemes.`)
-  if (user.is_student) insights.push('Student-specific scholarships and education schemes are prioritized for you.')
-  if (user.is_farmer) insights.push('Agricultural and farmer welfare schemes are included in your recommendations.')
-  if (insights.length === 0) insights.push('Complete your profile to get personalized AI insights.')
+  if (user.state) insights.push(`Showing schemes for ${user.state} + all Central schemes.`)
+  if (user.is_student) insights.push('Student scholarships are prioritized for you.')
+  if (user.is_farmer) insights.push('Farmer welfare schemes are included in your matches.')
   return insights.slice(0, 4)
 }

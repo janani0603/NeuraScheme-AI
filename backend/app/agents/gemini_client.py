@@ -1,32 +1,29 @@
-from google import genai
-from google.genai import types
+from groq import AsyncGroq
 from app.config.settings import settings
 
-_client: genai.Client | None = None
+_client: AsyncGroq | None = None
 
 
-def get_gemini_client() -> genai.Client:
+def get_groq_client() -> AsyncGroq:
     global _client
     if _client is None:
-        _client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        _client = AsyncGroq(api_key=settings.GROQ_API_KEY)
     return _client
 
 
 async def generate(prompt: str, temperature: float = 0.3) -> str:
     """
-    Send a prompt to Gemini and return the text response.
+    Send a prompt to Groq (Llama) and return the text response.
     Raises RuntimeError on API failure.
     """
-    client = get_gemini_client()
+    client = get_groq_client()
     try:
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=temperature,
-                max_output_tokens=1024,
-            ),
+        response = await client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=1024,
         )
-        return response.text.strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        raise RuntimeError(f"Gemini API error: {e}") from e
+        raise RuntimeError(f"Groq API error: {e}") from e

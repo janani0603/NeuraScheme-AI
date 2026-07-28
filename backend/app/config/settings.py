@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    GEMINI_API_KEY: str
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GROQ_API_KEY: str
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     CHROMA_DB_PATH: str = str(_BASE_DIR / "chroma_db")
 

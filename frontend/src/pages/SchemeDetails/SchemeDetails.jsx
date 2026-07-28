@@ -9,6 +9,52 @@ import './SchemeDetails.css'
 
 const TABS = ['Overview', 'Benefits', 'Eligibility', 'Documents', 'How to Apply']
 
+function parseLines(text) {
+  if (!text) return []
+  // Split on newlines first, then on '. ' before capital letters
+  const byNewline = text.split(/\n+/).map((l) => l.trim()).filter((l) => l.length > 6)
+  if (byNewline.length > 1) {
+    return byNewline.map((l) => l.replace(/^[\d.)-]+\s*/, '').trim()).filter((l) => l.length > 6)
+  }
+  // Fallback: split single paragraph on sentence boundaries
+  return text
+    .split(/\.\s+(?=[A-Z])/) 
+    .map((l) => l.replace(/^[\d.)-]+\s*/, '').trim())
+    .filter((l) => l.length > 6)
+}
+
+function StepList({ text }) {
+  const steps = parseLines(text)
+  if (!steps.length) return <div className="tab-text">{text || 'No information available.'}</div>
+  return (
+    <ol className="steps-list">
+      {steps.map((s, i) => (
+        <li key={i} className="step-item">
+          <div className="step-num">{i + 1}</div>
+          <div className="step-text">{s}</div>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function DocList({ text }) {
+  const lines = text
+    ? text.split(/\n|[,;]/).map((l) => l.replace(/^[-•*]+\s*/, '').trim()).filter((l) => l.length > 3)
+    : []
+  if (!lines.length) return <div className="tab-text">{text || 'No information available.'}</div>
+  return (
+    <ul className="doc-list">
+      {lines.map((d, i) => (
+        <li key={i} className="doc-item">
+          <span className="doc-icon">📄</span>
+          <span>{d}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default function SchemeDetails() {
   const { slug } = useParams()
   const navigate = useNavigate()
@@ -121,11 +167,11 @@ export default function SchemeDetails() {
               ))}
             </div>
             <div className="tab-content">
-              {tab === 0 && <div className="tab-text">{scheme.details || 'No details available.'}</div>}
-              {tab === 1 && <div className="tab-text">{scheme.benefits || 'No benefits information available.'}</div>}
+              {tab === 0 && <StepList text={scheme.details} />}
+              {tab === 1 && <StepList text={scheme.benefits} />}
               {tab === 2 && (
                 <div>
-                  <div className="tab-text">{scheme.eligibility || 'No eligibility information available.'}</div>
+                  <StepList text={scheme.eligibility} />
                   {isAuthenticated && (
                     <div className="elig-cta">
                       <p>Want to know if you qualify?</p>
@@ -136,12 +182,12 @@ export default function SchemeDetails() {
               )}
               {tab === 3 && (
                 <div>
-                  <div className="tab-text">{scheme.documents || 'No document information available.'}</div>
+                  <DocList text={scheme.documents} />
                 </div>
               )}
               {tab === 4 && (
                 <div>
-                  <div className="tab-text">{scheme.application || 'No application information available.'}</div>
+                  <StepList text={scheme.application} />
                   {isAuthenticated && (
                     <div className="elig-cta">
                       <p>Need help with the application process?</p>

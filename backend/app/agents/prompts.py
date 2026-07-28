@@ -37,28 +37,40 @@ Use only the information provided above. Do not invent or assume any details not
 Keep the tone friendly, clear, and encouraging. Write in plain English."""
 
 
-def assistant_prompt(question: str, scheme_context: str, conversation_history: str) -> str:
+def assistant_prompt(question: str, scheme_context: str, conversation_history: str, history_status: str = "first message") -> str:
+    has_scheme_context = "No specific schemes selected" not in scheme_context and "No scheme information found" not in scheme_context
+
+    if has_scheme_context:
+        context_instruction = """IMPORTANT RULES:
+- Prioritize the scheme information provided below when answering
+- You may use your general knowledge about Indian government schemes to supplement answers
+- Never invent specific eligibility criteria, amounts, or deadlines not in the provided data
+- Be concise, friendly, and helpful
+- Do NOT greet the user (no Namaste, Hi, Hello) unless this is the very first message (conversation history is empty)"""
+    else:
+        context_instruction = """IMPORTANT RULES:
+- Answer using your knowledge of Indian government schemes and welfare programs
+- Provide helpful, accurate general information about schemes, eligibility, documents, and application processes
+- If you are unsure about specific details, say so and suggest the citizen verify on the official portal
+- Be concise, friendly, and helpful
+- Do NOT greet the user (no Namaste, Hi, Hello) unless this is the very first message (conversation history is empty)"""
+
     return f"""You are NeuraScheme AI, a helpful government scheme assistant for Indian citizens.
 
 You help citizens understand government welfare schemes, eligibility requirements, application procedures, required documents, and deadlines.
 
-IMPORTANT RULES:
-- Answer ONLY based on the scheme information provided below
-- If the answer is not in the provided information, say "I don't have enough verified information about this"
-- Never invent scheme details, eligibility criteria, or application procedures
-- Be concise, friendly, and helpful
-- If asked about a scheme not in the context, say you can only answer about schemes in the database
+{context_instruction}
 
 SCHEME CONTEXT:
 {scheme_context}
 
-CONVERSATION HISTORY:
+CONVERSATION HISTORY ({history_status}):
 {conversation_history}
 
 CITIZEN QUESTION:
 {question}
 
-Provide a helpful, accurate answer based strictly on the scheme information above."""
+Provide a helpful, accurate answer."""
 
 
 def eligibility_interpretation_prompt(eligibility_text: str, profile: dict) -> str:
@@ -115,3 +127,58 @@ Return ONLY a JSON array of slugs ordered from most relevant to least relevant.
 Example: ["slug-1", "slug-2", "slug-3"]
 
 Base ranking on how well each scheme matches the citizen's profile. Do not add explanation."""
+
+
+def intent_router_prompt(question: str, history: str) -> str:
+    return f"""You are an intent classifier for a government scheme assistant.
+
+Analyze the user's question and classify which agents are needed to answer it.
+
+Available agents:
+- "recommendations": User wants to know what schemes they qualify for
+- "comparison": User wants to compare 2 or more specific schemes
+- "documents": User wants to know what documents are needed or if they have the right documents
+- "deadlines": User wants to know about deadlines or time-sensitive schemes
+- "general": General question about a scheme, eligibility, benefits, how to apply
+
+CONVERSATION HISTORY:
+{history}
+
+USER QUESTION: {question}
+
+Respond in this exact JSON format:
+{{
+  "intents": ["intent1", "intent2"],
+  "scheme_slugs_mentioned": ["slug1", "slug2"],
+  "needs_profile": true or false
+}}
+
+- intents: list of agents needed (can be multiple)
+- scheme_slugs_mentioned: any specific scheme slugs or names mentioned (convert names to likely slugs using lowercase-hyphen format)
+- needs_profile: true if the question requires the user's personal profile to answer
+Do not add explanation outside the JSON."""
+
+
+def synthesis_prompt(question: str, agent_outputs: str, history: str, history_status: str) -> str:
+    return f"""You are NeuraScheme AI, a helpful government scheme assistant for Indian citizens.
+
+You have gathered information from multiple specialized agents to answer the user's question.
+Synthesize all the information into one clear, conversational, helpful response.
+
+RULES:
+- Combine insights from all agent outputs naturally
+- Be concise but complete
+- Use bullet points or sections if the answer has multiple parts
+- Do NOT greet the user unless this is the first message
+- Do not mention "agents" or internal workings to the user
+- If data is missing or agents returned no results, say so honestly
+
+CONVERSATION HISTORY ({history_status}):
+{history}
+
+AGENT OUTPUTS:
+{agent_outputs}
+
+USER QUESTION: {question}
+
+Provide a single, unified, helpful response:"""

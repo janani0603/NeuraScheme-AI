@@ -9,10 +9,19 @@ from app.schemas.ai import (
     AssistantResponse,
     ConversationResponse,
     ConversationMessage,
+    DeadlineRequest,
+    DeadlineResponse,
+    DocumentCheckRequest,
+    DocumentCheckResponse,
+    ComparisonRequest,
+    ComparisonResponse,
 )
 from app.schemas.recommendation import RecommendationListResponse
 from app.agents.workflow import run_recommendation_pipeline
 from app.agents.application_agent import application_agent
+from app.agents.deadline_agent import deadline_agent
+from app.agents.document_checker_agent import document_checker_agent
+from app.agents.comparison_agent import comparison_agent
 from app.database.connection import db
 
 logger = logging.getLogger(__name__)
@@ -167,3 +176,92 @@ async def delete_conversation(
     )
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+
+# ── Deadline Agent ────────────────────────────────────────────────────────────
+
+@router.post("/deadlines", response_model=DeadlineResponse)
+async def check_deadlines(
+    body: DeadlineRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Extract and track deadlines for a list of schemes.
+    Returns schemes sorted by urgency.
+    """
+    user_id = str(current_user["_id"])
+    try:
+        result = await deadline_agent(user_id=user_id, scheme_slugs=body.scheme_slugs)
+    except Exception as e:
+        logger.error(f"Deadline agent error: {e}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Deadline service unavailable")
+    return result
+
+
+@router.get("/deadlines", response_model=DeadlineResponse)
+async def get_saved_deadlines(current_user: dict = Depends(get_current_user)):
+    """Get previously saved deadline alerts for the current user."""
+    user_id = str(current_user["_id"])
+    doc = await db["deadline_alerts"].find_one({"userId": user_id})
+    if not doc:
+        return {"deadlines": [], "urgent_count": 0}
+    deadlines = doc.get("deadlines", [])
+    urgent_count = sum(1 for d in deadlines if d.get("urgency") == "high" and d.get("has_deadline"))
+    return {"deadlines": deadlines, "urgent_count": urgent_count}
+
+
+# ── Document Checker Agent ────────────────────────────────────────────────────
+
+@router.post("/check-documents", response_model=DocumentCheckResponse)
+async def check_documents(
+    body: DocumentCheckRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Check if the user has all required documents for a specific scheme.
+    """
+    try:
+        result = await document_checker_agent(
+            scheme_slug=body.scheme_slug,
+            user_documents=body.user_documents,
+        )
+    except Exception as e:
+        logger.error(f"Document checker error: {e}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Document checker unavailable")
+    if "error" in result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result["error"])
+    return result
+
+
+# ── Comparison Agent ──────────────────────────────────────────────────────────
+
+@router.post("/compare", response_model=ComparisonResponse)
+async def compare_schemes(
+    body: ComparisonRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Compare 2-4 schemes side by side with AI analysis.
+    Optionally pass a profile for personalized best-match recommendation.
+    """
+    if len(body.scheme_slugs) < 2:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least 2 schemes required")
+
+    profile = body.profile or {}
+    # Fall back to user's own profile if none provided
+    if not profile:
+        profile = {
+            "state": current_user.get("state"),
+            "occupation": current_user.get("occupation"),
+            "annual_income": current_user.get("annual_income"),
+            "category": current_user.get("category"),
+        }
+
+    try:
+        result = await comparison_agent(scheme_slugs=body.scheme_slugs, profile=profile)
+    except Exception as e:
+        logger.error(f"Comparison agent error: {e}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Comparison service unavailable")
+    if "error" in result:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result["error"])
+    return result

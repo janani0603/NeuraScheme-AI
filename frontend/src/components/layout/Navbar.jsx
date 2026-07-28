@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { useSidebar } from '../../context/SidebarContext'
 import './Navbar.css'
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
+  const { sidebarOpen, toggleSidebar } = useSidebar()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -25,7 +27,7 @@ export default function Navbar() {
     <nav className={`navbar ${isLanding ? 'navbar-landing' : 'navbar-app'}`}>
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand">
-          <span className="brand-icon">🧠</span>
+          <div className="brand-icon">🧠</div>
           <span className="brand-name">NeuraScheme <span>AI</span></span>
         </Link>
 
@@ -38,6 +40,15 @@ export default function Navbar() {
         )}
 
         <div className="navbar-actions">
+          {isAuthenticated && !isLanding && (
+            <button
+              className={`sidebar-toggle-btn ${sidebarOpen ? 'open' : ''}`}
+              onClick={toggleSidebar}
+              aria-label="Toggle sidebar"
+            >
+              <span /><span /><span />
+            </button>
+          )}
           {isAuthenticated ? (
             <>
               <Link to="/notifications" className={`navbar-icon-btn ${isActive('/notifications') ? 'active' : ''}`} title="Notifications">🔔</Link>

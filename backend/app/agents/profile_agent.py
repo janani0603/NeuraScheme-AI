@@ -19,6 +19,16 @@ class AgentState(TypedDict, total=False):
     assistant_response: str
     error: Optional[str]
 
+    # Deadline agent
+    deadlines: list
+    urgent_count: int
+
+    # Document checker agent
+    document_check: dict
+
+    # Comparison agent
+    comparison: dict
+
 
 def profile_agent(state: AgentState) -> AgentState:
     """

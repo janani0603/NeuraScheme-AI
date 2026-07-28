@@ -46,7 +46,6 @@ export default function Eligibility() {
     if (payload.annual_income) payload.annual_income = parseFloat(payload.annual_income)
     if (payload.age) payload.age = parseInt(payload.age)
 
-    // Run animation and API call in parallel
     const animateSteps = async () => {
       for (let i = 0; i < AI_STEPS.length; i++) {
         await new Promise((r) => setTimeout(r, 900))
@@ -54,14 +53,19 @@ export default function Eligibility() {
       }
     }
 
-    const fetchResults = api.post('/ai/recommendations', payload)
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out. The AI is taking too long. Please try again.')), 60000)
+    )
 
     try {
-      const [, res] = await Promise.all([animateSteps(), fetchResults])
+      const [, res] = await Promise.all([
+        animateSteps(),
+        Promise.race([api.post('/ai/recommendations', payload), timeout])
+      ])
       setResults(res.data.recommendations || [])
       setStep(2)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong. Please try again.')
+      setError(err.response?.data?.detail || err.message || 'Something went wrong. Please try again.')
       setStep(0)
     }
   }

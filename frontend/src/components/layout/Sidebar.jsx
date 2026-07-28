@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { useSidebar } from '../../context/SidebarContext'
 import './Sidebar.css'
 
 const navItems = [
@@ -14,9 +16,14 @@ const navItems = [
 
 export default function Sidebar() {
   const { user } = useAuth()
+  const { sidebarOpen } = useSidebar()
+
+  useEffect(() => {
+    document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)
+  }, [sidebarOpen])
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
       <div className="sidebar-user">
         <div className="sidebar-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</div>
         <div>
@@ -31,9 +38,10 @@ export default function Sidebar() {
             key={item.to}
             to={item.to}
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            title={item.label}
           >
             <span className="sidebar-icon">{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="sidebar-label">{item.label}</span>
           </NavLink>
         ))}
 
