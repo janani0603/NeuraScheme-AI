@@ -45,6 +45,9 @@ frontend/.vite/
 sentence_transformers_cache/
 .cache/
 
+# ── ChromaDB ──────────────────────────────────────────────────────────────────
+backend/chroma_db/
+
 # ── IDE / Editor ──────────────────────────────────────────────────────────────
 .vscode/
 .idea/
