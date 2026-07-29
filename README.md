@@ -7,7 +7,7 @@
 
 ---
 
-React • FastAPI • MongoDB Atlas • LangGraph • Gemini • Sentence Transformers
+React • FastAPI • MongoDB Atlas • LangGraph • Groq (Llama) • Sentence Transformers • ChromaDB
 
 </div>
 
@@ -122,12 +122,12 @@ The platform uses specialized AI agents instead of a single chatbot.
 
 Agents include:
 
-- Discovery Agent
-- Eligibility Agent
-- Recommendation Agent
-- Document Assistant Agent
-- Reminder Agent
-- AI Assistant Agent
+- Profile Agent — validates and normalizes user profile
+- Retrieval Agent — semantic search via ChromaDB + MongoDB fallback
+- Eligibility Agent — rule-based scoring of candidate schemes
+- Recommendation Agent — combined confidence scoring and ranking
+- Explanation Agent — AI-generated personalized explanations via Groq
+- Application Agent — AI assistant chat with intent routing and conversation history
 
 Each agent performs one task and passes structured results to the next agent, making the system modular, explainable, and easier to maintain.
 
@@ -230,10 +230,10 @@ Collections include:
 
 ## Artificial Intelligence
 
-- LangGraph
-- Gemini API
-- Sentence Transformers
-- ChromaDB (or MongoDB Atlas Vector Search)
+- LangGraph (agent orchestration)
+- Groq API — llama-3.3-70b-versatile (LLM for explanations and assistant)
+- Sentence Transformers — all-MiniLM-L6-v2 (384-dim embeddings)
+- ChromaDB (local vector store for semantic search)
 
 ---
 
@@ -290,21 +290,26 @@ This hybrid approach provides both accurate recommendations and human-readable e
                     FastAPI Backend
                            │
         ┌──────────────────┼──────────────────┐
-        ▼                  ▼                  ▼
- Discovery Agent   Eligibility Agent   AI Assistant
-        │                  │
-        └──────────┬───────┘
-                   ▼
-         Recommendation Agent
-                   │
-                   ▼
-          Document Assistant
-                   │
-                   ▼
-             Reminder Agent
-                   │
-                   ▼
-             React Frontend
+        ▼
+   Profile Agent
+        │
+        ▼
+   Retrieval Agent (ChromaDB + MongoDB)
+        │
+        ▼
+   Eligibility Agent
+        │
+        ▼
+   Recommendation Agent
+        │
+        ▼
+   Explanation Agent (Groq / Llama)
+        │
+        ▼
+   Application Agent (AI Assistant)
+        │
+        ▼
+   React Frontend
 
 ---
 
@@ -1020,22 +1025,22 @@ NeuraScheme AI instead follows a collaborative pipeline.
 User
  │
  ▼
-Profile Agent
+Profile Agent        ← validates & normalizes profile
  │
  ▼
-Discovery Agent
+Retrieval Agent      ← ChromaDB semantic search + MongoDB fallback
  │
  ▼
-Eligibility Agent
+Eligibility Agent    ← rule-based scoring (min threshold: 40%)
  │
  ▼
-Recommendation Agent
+Recommendation Agent ← combined score: eligibility(60%) + vector(25%) + completeness(15%)
  │
  ▼
-Document Agent
+Explanation Agent    ← Groq/Llama explanations for top 3 schemes
  │
  ▼
-Assistant Agent
+Application Agent    ← AI assistant with intent routing
  │
  ▼
 Final Response
@@ -1143,24 +1148,19 @@ The goal is not simply to filter schemes but to determine how closely each schem
 
 # Step 5 — Recommendation Scoring
 
-Each candidate scheme receives a recommendation score.
+Each candidate scheme receives a combined confidence score.
 
-The score is calculated using multiple factors.
-
-Example:
+The score is calculated using:
 
 | Factor | Weight |
 |----------|--------|
-| State Match | 25% |
-| Occupation Match | 20% |
-| Income Match | 20% |
-| Category Match | 15% |
-| Education Match | 10% |
-| Semantic Similarity | 10% |
+| Eligibility Score | 60% |
+| Semantic Similarity (ChromaDB vector score) | 25% |
+| Profile Completeness | 15% |
 
-These weights can be adjusted as the platform evolves.
+Schemes scoring below 40% eligibility are filtered out before ranking.
 
-The Recommendation Agent ranks schemes from highest to lowest score.
+The Recommendation Agent ranks the top 50 schemes by combined score.
 
 ---
 
@@ -1170,7 +1170,7 @@ Ranking alone is not sufficient.
 
 Users should understand *why* a scheme is recommended.
 
-The Assistant Agent sends structured information to the Gemini API to generate an easy-to-understand explanation.
+The Explanation Agent sends structured information to the Groq API (Llama 3.3 70B) to generate an easy-to-understand explanation for the top 3 schemes. The remaining schemes receive a fast rule-based fallback explanation.
 
 Example:
 
@@ -1433,7 +1433,7 @@ MongoDB Atlas
 
 ↓
 
-Gemini API
+Groq API (Llama 3.3 70B)
 ```
 
 Each layer has a single responsibility, making the project easier to maintain and extend.
@@ -1474,36 +1474,37 @@ Major API groups include:
 
 ### AI
 
-- Eligibility Check
-- Get Recommendations
-- Ask AI Assistant
-- Generate Explanation
+- `POST /ai/recommendations` — full LangGraph pipeline
+- `POST /ai/recommendations/from-profile` — uses saved user profile
+- `POST /ai/assistant` — AI assistant chat
+- `GET /ai/conversations` — conversation history
+- `DELETE /ai/conversations/{id}` — delete conversation
+- `POST /ai/deadlines` — extract deadlines from schemes
+- `POST /ai/check-documents` — document readiness checker
+- `POST /ai/compare` — compare 2–4 schemes side by side
 
 ---
 
 ### Saved Schemes
 
-- Save Scheme
-- Remove Scheme
-- List Saved Schemes
+- `POST /schemes/{slug}/save` — save scheme
+- `DELETE /schemes/{slug}/save` — unsave scheme
+- `GET /users/me/saved` — list saved schemes
 
 ---
 
-### Notifications
+### Recommendations
 
-- Get Notifications
-- Mark as Read
-- Delete Notification
+- `POST /recommendations/check` — guest or authenticated eligibility check
+- `GET /recommendations/me` — get saved recommendations
+- `POST /recommendations/me/refresh` — re-run pipeline with saved profile
 
 ---
 
 ### Admin
 
-- Add Scheme
-- Update Scheme
-- Delete Scheme
-- Import Dataset
-- View Analytics
+- `GET /admin/analytics` — platform stats (admin role only)
+- `DELETE /admin/schemes/{slug}` — delete a scheme (admin role only)
 
 ---
 
@@ -1544,12 +1545,11 @@ NeuraScheme-AI/
 │   ├── src/
 │   │   ├── assets/
 │   │   ├── components/
-│   │   │   ├── common/
-│   │   │   ├── cards/
-│   │   │   ├── forms/
-│   │   │   ├── layout/
-│   │   │   └── charts/
-│   │   │
+│   │   │   ├── cards/SchemeCard.jsx
+│   │   │   └── layout/
+│   │   │       ├── Navbar.jsx
+│   │   │       ├── Sidebar.jsx
+│   │   │       └── BottomNav.jsx
 │   │   ├── pages/
 │   │   │   ├── Landing/
 │   │   │   ├── Login/
@@ -1563,44 +1563,62 @@ NeuraScheme-AI/
 │   │   │   ├── Notifications/
 │   │   │   ├── Profile/
 │   │   │   └── Admin/
-│   │   │
-│   │   ├── services/
-│   │   ├── hooks/
 │   │   ├── context/
-│   │   ├── routes/
-│   │   ├── utils/
+│   │   │   ├── AuthContext.jsx
+│   │   │   └── SidebarContext.jsx
+│   │   ├── hooks/useAuth.js
+│   │   ├── services/api.js
+│   │   ├── routes/AppRoutes.jsx
 │   │   ├── App.jsx
 │   │   └── main.jsx
-│   │
 │   └── package.json
 │
 ├── backend/
 │   ├── app/
 │   │   ├── agents/
-│   │   ├── api/
+│   │   │   ├── profile_agent.py
+│   │   │   ├── retrieval_agent.py
+│   │   │   ├── eligibility_agent.py
+│   │   │   ├── recommendation_agent.py
+│   │   │   ├── explanation_agent.py
+│   │   │   ├── application_agent.py
+│   │   │   ├── comparison_agent.py
+│   │   │   ├── deadline_agent.py
+│   │   │   ├── document_checker_agent.py
+│   │   │   ├── workflow.py
+│   │   │   ├── gemini_client.py  ← uses Groq/Llama internally
+│   │   │   ├── embedding_model.py
+│   │   │   ├── chroma_client.py
+│   │   │   └── prompts.py
 │   │   ├── auth/
-│   │   ├── config/
-│   │   ├── database/
-│   │   ├── middleware/
+│   │   ├── config/settings.py
+│   │   ├── database/connection.py
+│   │   ├── middleware/cors.py
 │   │   ├── models/
 │   │   ├── routes/
+│   │   │   ├── auth.py
+│   │   │   ├── users.py
+│   │   │   ├── schemes.py
+│   │   │   ├── recommendations.py
+│   │   │   ├── ai.py
+│   │   │   └── admin.py
+│   │   ├── schemas/
 │   │   ├── services/
-│   │   ├── utils/
 │   │   └── main.py
-│   │
+│   ├── chroma_db/          ← local ChromaDB vector index
 │   ├── scripts/
 │   │   ├── import_dataset.py
 │   │   ├── clean_dataset.py
 │   │   ├── generate_embeddings.py
-│   │   └── create_indexes.py
-│   │
+│   │   └── build_chroma_index.py
 │   ├── requirements.txt
 │   └── .env
 │
 ├── dataset/
-│   └── government_schemes.csv
+│   └── cleaned_government_schemes.csv
 │
-├── docs/
+├── demo/
+│   └── demo_agents.py      ← standalone agent showcase script
 │
 └── README.md
 ```
@@ -1742,24 +1760,17 @@ Passwords should always be hashed before storage using bcrypt.
 Backend
 
 ```env
-MONGODB_URI=
-
-DATABASE_NAME=
-
-JWT_SECRET=
-
-JWT_ALGORITHM=
-
-ACCESS_TOKEN_EXPIRE_MINUTES=
-
-GEMINI_API_KEY=
-
-CHROMA_DB_PATH=
-
-EMBEDDING_MODEL=
-
-CORS_ORIGINS=
+MONGODB_URI=your_mongodb_atlas_uri
+DATABASE_NAME=neurascheme
+JWT_SECRET=your_jwt_secret
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+GROQ_API_KEY=gsk_your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
+EMBEDDING_MODEL=all-MiniLM-L6-v2
 ```
+
+Get a free Groq API key at https://console.groq.com
 
 Frontend
 
@@ -1795,44 +1806,43 @@ npm run dev
 
 ---
 
-## Backend
+## Backend (Windows)
 
-```bash
+```powershell
 cd backend
-
-python -m venv venv
-
-source venv/bin/activate
-
-pip install -r requirements.txt
-
-uvicorn app.main:app --reload
+py -3.11 -m venv venv
+venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ---
 
-## Import Dataset
+## Import Dataset (one-time)
 
-```bash
+```powershell
 python scripts/import_dataset.py
 ```
 
-This script should:
+---
 
-- Load the Kaggle CSV
-- Clean records
-- Normalize categories
-- Store data in MongoDB Atlas
+## Build ChromaDB Index (one-time)
+
+```powershell
+python scripts/build_chroma_index.py
+```
+
+This builds the local vector index used for semantic scheme retrieval.
 
 ---
 
-## Generate Embeddings
+## Agent Demo (for showcasing)
 
-```bash
-python scripts/generate_embeddings.py
+```powershell
+python .\demo\demo_agents.py
 ```
 
-This script creates semantic embeddings for each scheme and stores them for similarity search.
+Runs all 6 agents individually with printed output — useful for demos and presentations.
 
 ---
 
@@ -1896,7 +1906,8 @@ Testing should include:
 
 - React ↔ FastAPI
 - FastAPI ↔ MongoDB Atlas
-- FastAPI ↔ Gemini API
+- FastAPI ↔ Groq API
+- FastAPI ↔ ChromaDB
 
 ---
 
@@ -2003,8 +2014,8 @@ This project would not be possible without the following technologies and resour
 - FastAPI
 - MongoDB Atlas
 - LangGraph
-- Google Gemini API
-- Sentence Transformers
+- Groq API (Llama 3.3 70B)
+- Sentence Transformers (all-MiniLM-L6-v2)
 - ChromaDB
 - Kaggle Government Schemes Dataset
 - Vercel
