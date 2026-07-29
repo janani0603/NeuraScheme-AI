@@ -60,6 +60,7 @@ export default function Assistant() {
   const [historyOpen, setHistoryOpen] = useState(true)
   const [historyLoading, setHistoryLoading] = useState(true)
   const [activeConvId, setActiveConvId] = useState(null)
+  const [showScanner, setShowScanner] = useState(false)
   const [scanImages, setScanImages] = useState([])
   const [scanMessage, setScanMessage] = useState('')
   const [isConverting, setIsConverting] = useState(false)
@@ -294,8 +295,17 @@ export default function Assistant() {
                   <div className="page-title">AI Assistant</div>
                   <div className="page-subtitle">Ask anything about government schemes</div>
                 </div>
+                <button
+                  type="button"
+                  className="scan-toggle-btn"
+                  onClick={() => setShowScanner((prev) => !prev)}
+                  aria-expanded={showScanner}
+                >
+                  {showScanner ? 'Hide scanner' : 'Show scanner'}
+                </button>
               </div>
 
+              {showScanner && (
               <div className="scan-section card">
                 <div className="scan-header">
                   <div>
@@ -351,6 +361,7 @@ export default function Assistant() {
 
                 {scanMessage && <div className="scan-message">{scanMessage}</div>}
               </div>
+              )}
 
               <div className="chat-container card">
                 <div className="chat-messages">

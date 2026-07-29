@@ -321,9 +321,26 @@
   margin-bottom: 12px;
   flex-shrink: 0;
   padding: 0 4px;
+  gap: 10px;
 }
 
 .assistant-header .page-subtitle { margin-bottom: 0; }
+
+.scan-toggle-btn {
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.scan-toggle-btn:hover {
+  background: var(--primary-glow);
+}
 
 .chat-container {
   flex: 1;
