@@ -18,6 +18,12 @@ const INDIAN_STATES = [
   'Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
 ]
 
+const CURATED_TAGS = [
+  'Financial Assistance', 'Scholarship', 'Pension', 'Loan', 'Subsidy',
+  'Women', 'Disability', 'Farmers', 'Students', 'Labour',
+  'Health', 'Education', 'Housing', 'Employment', 'SC/ST',
+]
+
 const INITIAL_FILTERS = {
   keyword: '', level: '', category: '', tag: '', state: '',
   sort_by: 'scheme_name', sort_order: 'asc', page: 1,
@@ -31,12 +37,10 @@ export default function Explorer() {
   const [searchInput, setSearchInput] = useState('')
   const [total, setTotal] = useState(0)
   const [categories, setCategories] = useState([])
-  const [tags, setTags] = useState([])
   const debounceRef = useRef(null)
 
   useEffect(() => {
     api.get('/schemes/filters/categories').then((r) => setCategories(r.data || [])).catch(() => {})
-    api.get('/schemes/filters/tags').then((r) => setTags((r.data || []).slice(0, 30))).catch(() => {})
   }, [])
 
   // Debounce keyword search
@@ -54,8 +58,8 @@ export default function Explorer() {
     if (filters.keyword) params.keyword = filters.keyword
     if (filters.level) params.level = filters.level
     if (filters.category) params.category = filters.category
-    if (filters.tag) params.tag = filters.tag
     if (filters.state) params.state = filters.state
+    if (filters.tag) params.tag = filters.tag
     if (filters.sort_by) params.sort_by = filters.sort_by
     if (filters.sort_order) params.sort_order = filters.sort_order
     api.get('/schemes', { params })
@@ -138,20 +142,20 @@ export default function Explorer() {
           )}
         </div>
 
+
+
         {/* Tag chips */}
-        {tags.length > 0 && (
-          <div className="tag-chips">
-            {tags.map((t) => (
-              <button
-                key={t}
-                className={`tag-chip ${filters.tag === t ? 'active' : ''}`}
-                onClick={() => setFilter('tag', filters.tag === t ? '' : t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="tag-chips">
+          {CURATED_TAGS.map((t) => (
+            <button
+              key={t}
+              className={`tag-chip ${filters.tag === t ? 'active' : ''}`}
+              onClick={() => setFilter('tag', filters.tag === t ? '' : t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
 
         {/* Active filter badges */}
         {activeFilters.length > 0 && (
