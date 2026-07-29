@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { Brain, CheckCircle, Bot, Target, FileText, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import './Login.css'
 
 export default function Login() {
@@ -22,16 +23,16 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-left">
         <Link to="/" className="auth-brand">
-          <span>🧠</span> NeuraScheme <strong>AI</strong>
+          <Brain size={20} /> NeuraScheme <strong>AI</strong>
         </Link>
         <div className="auth-left-content">
           <h2>Discover schemes made for you</h2>
           <p>AI-powered recommendations based on your profile, location, and eligibility.</p>
           <div className="auth-features">
-            <div className="auth-feature">✅ 3,397 Government Schemes</div>
-            <div className="auth-feature">🤖 Multi-Agent AI Pipeline</div>
-            <div className="auth-feature">🎯 Personalized Recommendations</div>
-            <div className="auth-feature">📄 Document Guidance</div>
+            <div className="auth-feature"><CheckCircle size={15} /> 3,397 Government Schemes</div>
+            <div className="auth-feature"><Bot size={15} /> Multi-Agent AI Pipeline</div>
+            <div className="auth-feature"><Target size={15} /> Personalized Recommendations</div>
+            <div className="auth-feature"><FileText size={15} /> Document Guidance</div>
           </div>
         </div>
       </div>
@@ -43,7 +44,7 @@ export default function Login() {
             <p>Sign in to your NeuraScheme AI account</p>
           </div>
 
-          {error && <div className="auth-error">⚠️ {error}</div>}
+          {error && <div className="auth-error"><AlertTriangle size={15} /> {error}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
@@ -70,7 +71,7 @@ export default function Login() {
                   required
                 />
                 <button type="button" className="input-icon-btn" onClick={() => setShowPass(!showPass)}>
-                  {showPass ? '🙈' : '👁️'}
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { Brain, CheckCircle, Lock, Target, Bot, AlertTriangle, Rocket } from 'lucide-react'
 import '../Login/Login.css'
 
 const STEPS = ['Account', 'Personal', 'Professional', 'Review']
@@ -64,16 +65,16 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-left">
         <Link to="/" className="auth-brand">
-          <span>🧠</span> NeuraScheme <strong>AI</strong>
+          <Brain size={20} /> NeuraScheme <strong>AI</strong>
         </Link>
         <div className="auth-left-content">
           <h2>Join thousands of citizens</h2>
           <p>Create your profile once and let AI find the best government schemes for you.</p>
           <div className="auth-features">
-            <div className="auth-feature">✅ Free forever</div>
-            <div className="auth-feature">🔒 Your data is secure</div>
-            <div className="auth-feature">🎯 Personalized results</div>
-            <div className="auth-feature">🤖 AI-powered matching</div>
+            <div className="auth-feature"><CheckCircle size={15} /> Free forever</div>
+            <div className="auth-feature"><Lock size={15} /> Your data is secure</div>
+            <div className="auth-feature"><Target size={15} /> Personalized results</div>
+            <div className="auth-feature"><Bot size={15} /> AI-powered matching</div>
           </div>
         </div>
       </div>
@@ -96,7 +97,7 @@ export default function Register() {
             ))}
           </div>
 
-          {error && <div className="auth-error">⚠️ {error}</div>}
+          {error && <div className="auth-error"><AlertTriangle size={15} /> {error}</div>}
 
           {step === 0 && (
             <div className="auth-form">
@@ -233,7 +234,7 @@ export default function Register() {
             {step < 3
               ? <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={next}>Continue →</button>
               : <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleSubmit} disabled={loading}>
-                  {loading ? 'Creating Account...' : '🚀 Create Account'}
+                  {loading ? 'Creating Account...' : <><Rocket size={15} /> Create Account</>}
                 </button>
             }
           </div>
