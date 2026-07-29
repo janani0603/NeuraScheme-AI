@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
+import { jsPDF } from 'jspdf'
 import Navbar from '../../components/layout/Navbar'
 import Sidebar from '../../components/layout/Sidebar'
 import BottomNav from '../../components/layout/BottomNav'
-import { Brain, Target, Scale, FileText, Clock, MessageSquare, Pencil, Trash2, Send, Loader2, User } from 'lucide-react'
+import { Brain, Target, Scale, FileText, Clock, MessageSquare, Pencil, Trash2, Send, Loader2, User, Camera, Download, Image } from 'lucide-react'
 import api from '../../services/api'
 import './Assistant.css'
 
@@ -59,7 +60,11 @@ export default function Assistant() {
   const [historyOpen, setHistoryOpen] = useState(true)
   const [historyLoading, setHistoryLoading] = useState(true)
   const [activeConvId, setActiveConvId] = useState(null)
+  const [scanImages, setScanImages] = useState([])
+  const [scanMessage, setScanMessage] = useState('')
+  const [isConverting, setIsConverting] = useState(false)
   const bottomRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -133,6 +138,80 @@ export default function Assistant() {
   }
 
   const send = () => sendText(input.trim())
+
+  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Unable to read file'))
+    reader.readAsDataURL(file)
+  })
+
+  const handleScanFiles = async (event) => {
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
+
+    const newImages = []
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue
+      const dataUrl = await readFileAsDataUrl(file)
+      newImages.push({ name: file.name, dataUrl, type: file.type })
+    }
+
+    if (!newImages.length) {
+      setScanMessage('Please choose valid image files.')
+      event.target.value = ''
+      return
+    }
+
+    setScanImages((prev) => [...prev, ...newImages])
+    setScanMessage(`${newImages.length} image${newImages.length > 1 ? 's' : ''} added. You can convert them to a PDF.`)
+    event.target.value = ''
+  }
+
+  const handleConvertToPdf = async () => {
+    if (!scanImages.length) return
+
+    setIsConverting(true)
+    setScanMessage('Creating your PDF...')
+
+    try {
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+
+      for (const [index, image] of scanImages.entries()) {
+        const img = new Image()
+        img.src = image.dataUrl
+
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            const ratio = Math.min(pageWidth / img.width, pageHeight / img.height)
+            const imgWidth = img.width * ratio
+            const imgHeight = img.height * ratio
+            const x = (pageWidth - imgWidth) / 2
+            const y = (pageHeight - imgHeight) / 2
+            pdf.addImage(image.dataUrl, image.type.includes('png') ? 'PNG' : 'JPEG', x, y, imgWidth, imgHeight)
+            resolve()
+          }
+          img.onerror = reject
+        })
+
+        if (index < scanImages.length - 1) pdf.addPage()
+      }
+
+      pdf.save('scanned-document.pdf')
+      setScanMessage('PDF downloaded successfully.')
+    } catch {
+      setScanMessage('Unable to create the PDF. Please try another image.')
+    } finally {
+      setIsConverting(false)
+    }
+  }
+
+  const removeScanImage = (index) => {
+    setScanImages((prev) => prev.filter((_, i) => i !== index))
+    if (scanImages.length === 1) setScanMessage('')
+  }
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
@@ -215,6 +294,62 @@ export default function Assistant() {
                   <div className="page-title">AI Assistant</div>
                   <div className="page-subtitle">Ask anything about government schemes</div>
                 </div>
+              </div>
+
+              <div className="scan-section card">
+                <div className="scan-header">
+                  <div>
+                    <div className="scan-title"><Camera size={16} /> Document Scanner</div>
+                    <div className="scan-subtitle">Use your camera or upload an image to convert a document into a PDF.</div>
+                  </div>
+                  <button className="scan-action-btn" onClick={() => fileInputRef.current?.click()}>
+                    <Image size={15} /> Add image
+                  </button>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleScanFiles}
+                  style={{ display: 'none' }}
+                />
+
+                {scanImages.length > 0 ? (
+                  <div className="scan-preview-grid">
+                    {scanImages.map((image, index) => (
+                      <div key={`${image.name}-${index}`} className="scan-preview-card">
+                        <img src={image.dataUrl} alt={image.name} />
+                        <div className="scan-preview-meta">
+                          <span>{image.name}</span>
+                          <button type="button" onClick={() => removeScanImage(index)} title="Remove image">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="scan-empty-state">
+                    <div className="scan-empty-icon"><FileText size={24} /></div>
+                    <p>Capture a page from your phone camera or choose a saved image to turn it into a PDF.</p>
+                  </div>
+                )}
+
+                <div className="scan-footer">
+                  <button className="scan-convert-btn" onClick={handleConvertToPdf} disabled={!scanImages.length || isConverting}>
+                    {isConverting ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+                    {isConverting ? 'Creating PDF...' : 'Convert to PDF'}
+                  </button>
+                  {scanImages.length > 0 && (
+                    <button className="scan-clear-btn" onClick={() => { setScanImages([]); setScanMessage('') }}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {scanMessage && <div className="scan-message">{scanMessage}</div>}
               </div>
 
               <div className="chat-container card">
