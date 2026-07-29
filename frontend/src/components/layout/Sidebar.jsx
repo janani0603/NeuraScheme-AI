@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { LayoutDashboard, Search, CheckCircle, Bot, Bookmark, Bell, User, Settings } from 'lucide-react'
+import { useSidebar } from '../../context/SidebarContext'
+import { LayoutDashboard, Search, CheckCircle, Bot, Bookmark, Bell, User, Settings, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import './Sidebar.css'
 
 const navItems = [
@@ -16,9 +16,19 @@ const navItems = [
 
 export default function Sidebar() {
   const { user } = useAuth()
+  const { sidebarOpen, toggleSidebar } = useSidebar()
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
+      <button
+        type="button"
+        className="sidebar-toggle"
+        onClick={toggleSidebar}
+        aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+      >
+        {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+      </button>
+
       <div className="sidebar-user">
         <div className="sidebar-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</div>
         <div className="sidebar-user-info">

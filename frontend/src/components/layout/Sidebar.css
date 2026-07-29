@@ -1,9 +1,8 @@
 .sidebar {
-  position: fixed;
+  position: sticky;
   top: var(--navbar-height);
-  left: 0;
   width: var(--sidebar-collapsed-width);
-  height: calc(100vh - var(--navbar-height));
+  min-height: calc(100vh - var(--navbar-height));
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -13,11 +12,36 @@
   z-index: 50;
   transition: width 0.22s ease, box-shadow 0.22s ease;
   box-shadow: 1px 0 0 var(--border);
+  flex-shrink: 0;
 }
 
-.sidebar:hover {
+.sidebar.open {
   width: var(--sidebar-width);
   box-shadow: 4px 0 24px rgba(15,45,94,0.1);
+}
+
+.sidebar:not(.open):hover {
+  width: var(--sidebar-width);
+  box-shadow: 4px 0 24px rgba(15,45,94,0.1);
+}
+
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.sidebar-toggle:hover {
+  background: var(--primary-light);
 }
 
 /* ── User card ── */
@@ -57,7 +81,11 @@
   overflow: hidden;
   min-width: 0;
 }
-.sidebar:hover .sidebar-user-info { opacity: 1; transform: translateX(0); }
+.sidebar.open .sidebar-user-info,
+.sidebar:not(.open):hover .sidebar-user-info {
+  opacity: 1;
+  transform: translateX(0);
+}
 
 .sidebar-user-name {
   font-size: 13px;
@@ -137,7 +165,11 @@
   transform: translateX(-6px);
   transition: opacity 0.18s ease 0.06s, transform 0.18s ease 0.06s;
 }
-.sidebar:hover .sidebar-label { opacity: 1; transform: translateX(0); }
+.sidebar.open .sidebar-label,
+.sidebar:not(.open):hover .sidebar-label {
+  opacity: 1;
+  transform: translateX(0);
+}
 
 .sidebar-divider { height: 1px; background: var(--border); margin: 8px 4px; }
 
