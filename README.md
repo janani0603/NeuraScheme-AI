@@ -1,6 +1,6 @@
 # NeuraScheme AI
 
-## AI-Powered Multi-Agent Government Scheme Recommendation Platform
+## AI Agent for Government Scheme Intelligence Platform
 
 **Empowering Every Citizen Through Intelligent Government Scheme Discovery**
 
@@ -8,7 +8,7 @@
 
 # Overview
 
-NeuraScheme AI is a **Multi-Agent AI-powered Government Scheme Recommendation Platform** that helps citizens discover government schemes they are eligible for without manually searching through thousands of schemes.
+NeuraScheme AI is a **AI Agent for Government Scheme Intelligence Platform** that helps citizens discover government schemes they are eligible for without manually searching through thousands of schemes.
 
 The platform combines **rule-based eligibility analysis**, **semantic search**, and a **six-agent AI architecture** to provide personalized recommendations, AI-generated explanations, and conversational guidance throughout the application process.
 
