@@ -1,30 +1,23 @@
+# API and configuration
 fastapi
 uvicorn[standard]
-
-motor
-pymongo
-
-python-dotenv
-python-multipart
-
-python-jose[cryptography]
-passlib[bcrypt]
-
-email-validator
-
 pydantic
 pydantic-settings
+email-validator
 
+# Database and authentication
+motor
+pymongo
+python-jose[cryptography]
+python-dotenv
+
+# Dataset import and vector-index scripts
 pandas
 numpy
-
-scikit-learn
-
 tqdm
 
-# AI - Phase 4
+# AI agents and semantic search
 groq
 langgraph
-langchain-core
 sentence-transformers
 chromadb

@@ -344,6 +344,99 @@ NeuraScheme-AI/
 
 ---
 
+# Run the Project
+
+## Prerequisites
+
+- Node.js 20 or later
+- Python 3.11 or later
+- A MongoDB Atlas database
+- A Groq API key
+
+## 1. Configure the backend
+
+Create `backend/.env` with the following values. Replace the placeholders with your own credentials.
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+DATABASE_NAME=neurascheme
+JWT_SECRET=use_a_long_random_secret
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+CHROMA_DB_PATH=chroma_db
+```
+
+From the project root, create and activate a virtual environment, then install the backend dependencies:
+
+```powershell
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Start the API:
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+The API is available at `http://localhost:8000`; interactive API documentation is at `http://localhost:8000/docs`.
+
+## 2. Import and index scheme data
+
+In a second terminal, with the backend virtual environment active:
+
+```powershell
+cd backend
+.\venv\Scripts\python.exe scripts\clean_dataset.py
+.\venv\Scripts\python.exe scripts\import_dataset.py
+.\venv\Scripts\python.exe scripts\build_chroma_index.py
+```
+
+`build_chroma_index.py` is required for semantic retrieval. Re-run it after adding or substantially changing schemes in the admin panel.
+Existing admin credentials:
+email: admin123@neurascheme.com
+password: Admin@1234
+To create an administrator account, run:
+
+```powershell
+.\venv\Scripts\python.exe scripts\seed_admin.py
+```
+
+## 3. Run the frontend
+
+In another terminal from the project root:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend is available at `http://localhost:5173` and connects to `http://localhost:8000` by default. To use another API URL, create `frontend/.env`:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+The frontend dependencies, including `jspdf` for the document scanner's image-to-PDF feature, are managed in `frontend/package.json`.
+
+## 4. Run the agent integration test
+
+The agent test is a live integration test: it requires the MongoDB and Groq values above and creates test recommendation/deadline records with user ID `test123`.
+
+```powershell
+cd backend
+venv\Scripts\activate
+python ../demo/demo_agents.py
+```
+
+---
+
 # Future Enhancements
 
 - Voice Assistant
